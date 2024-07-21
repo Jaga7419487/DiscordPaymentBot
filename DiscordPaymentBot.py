@@ -3,38 +3,7 @@ import PMBotUI
 import discord
 from discord.ext import commands
 from constants import *
-
-BOT_DESCRIPTION = f"""
-When Person A help Person B pay something in real life, Person B should pay back Person A later. 
-Payment bot is created for this purpose.
-Let a person be the centralized one, transactions between other people will be done through this centralized person.
-
-Let's say Person A helps Person B to paid something, then Person B owes Person A
-Person B owes Centralized person -> Centralized person owes Person A
-
-The bot responses if the message is successfully received. Send the record again if the bot does not response. 
-Use the keyword "!" for calling this bot. The input window will close after 1 minute if no further interactions are detected.
-
-_List of commands:_
-- !info
-The message you are reading now. Contains useful information to use this bot.
-- !list
-List out all payment records stored in the server side of the bot.
-- **!pm**
-Writing payment record
-- !log
-This shows the {LOG_SHOW_NUMBER} latest payment record messages sent by users.
-- !logall
-This shows the {DEFAULT_LOG_SHOW_NUMBER} latest payment record messages sent by users.
-- !backup
-This shows the backup records in the backup file.
-- !showbackup
-This backups the current payment record to the backup file.
-- !create
-This is used to create a new person in the payment record.
-- !delete
-This is used to delete a person (including his amount) in the payment record.
-"""
+from botInfo import *
 
 
 def payment_record_to_dict() -> dict:

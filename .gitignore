@@ -5,3 +5,4 @@ DiscordPaymentBot.log
 log_abandoned.txt
 test_log.txt
 test_record.txt
+botInfo.py

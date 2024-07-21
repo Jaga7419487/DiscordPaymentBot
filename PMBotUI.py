@@ -1,9 +1,6 @@
 import discord
 from discord.ext import commands
-
-
-MENU_TIMEOUT = 3600.0
-UNDO_TIMEOUT = 3600.0
+from constants import MENU_TIMEOUT, UNDO_TIMEOUT
 
 
 def dict_to_options(record_dict: dict):
