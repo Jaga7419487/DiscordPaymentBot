@@ -1,5 +1,3 @@
-# Discord-Payment-Bot
-
 discord bot control:
 https://discord.com/developers/applications/1187756421807353867/bot
 
