@@ -1,5 +1,4 @@
 COMMAND = "pm"
-CENTRALIZED_PERSON = "ppl"
 BOT_STATUS = "->> !info"
 
 LOG_SHOW_NUMBER = 10
@@ -7,10 +6,8 @@ DEFAULT_LOG_SHOW_NUMBER = 40
 MENU_TIMEOUT = 3600.0
 UNDO_TIMEOUT = 3600.0
 
-# PAYMENT_RECORD_FILE = "payment_record.txt"
-PAYMENT_RECORD_FILE = "test_record.txt"
-# LOG_FILE = "log.txt"
-LOG_FILE = "test_log.txt"
+PAYMENT_RECORD_FILE = "payment_record.txt"
+LOG_FILE = "log.txt"
 BACKUP_FILE = "backup_record.txt"
 
 BOT_DESCRIPTION = f"""
