@@ -22,6 +22,9 @@ ctrl 0 D -> dulplicate current line
 if str(client.user.id) in message.content:
      await message.channel.send('You mentioned me!')
 
+Quick install packages: 
+> pip install -r requirements.txt
+
 Test conditions:
 pm jaga owe ppl1 100
 => jaga needs to pay ppl1: 100.0

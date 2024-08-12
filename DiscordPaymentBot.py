@@ -1,9 +1,12 @@
-import time
-import PMBotUI
-import discord
 from discord.ext import commands
+import discord
+
+from ExchangeRateHandler import ExchangeRateHandler, is_supported_currency
 from constants import *
 from botInfo import *
+import PMBotUI
+
+import time
 
 
 def payment_record_to_dict() -> dict:
@@ -244,13 +247,9 @@ def run():
     @bot.command()
     async def pm(message: commands.Context):
         async def single_pm():
-            reason = None
-
             msg: list[str] = message.message.content.lower().split()
             if len(msg) >= 5:
-                # command line UI (e.g. !pm p1,p2 owe p3,p4 100 (reason))
-                # fetching and check inputs
-
+                # Command line UI (e.g. !pm p1,p2 owe p3,p4 100 -CNY (reason))
                 ppl_to_pay: str = msg[1].lower()
                 for ppl in ppl_to_pay.split(','):
                     if ppl not in payment_data.keys().__str__().lower():
@@ -274,14 +273,18 @@ def run():
                     if amount == 0.0:
                         await message.channel.send("**Invalid amount: amount cannot be zero!**")
                         return
+                    amount = str(amount)
                 except ValueError:
                     await message.channel.send("**Invalid input for amount!**")
                     return
 
+                currency = UNIFIED_CURRENCY
+                reason = ""
                 if len(msg) > 5:
-                    reason = " ".join(msg[5:])
-                else:
-                    reason = ""
+                    if msg[5].startswith('-'):
+                        currency = msg[5][1:].upper()
+                    if len(msg) > 6:
+                        reason = " ".join(msg[6:])
 
                 if ppl_get_paid in ppl_to_pay.split(','):
                     await message.channel.send("**Invalid input: one cannot pay himself!**")
@@ -297,6 +300,7 @@ def run():
                 operation_owe = menu.owe
                 ppl_get_paid = menu.paid_text
                 amount = menu.amount_text
+                currency = menu.currency if menu.currency else UNIFIED_CURRENCY
                 reason = menu.reason if menu.reason else ""
 
                 if menu.cancelled:
@@ -305,11 +309,20 @@ def run():
                     await message.channel.send("**> Input closed. You take too long!**")
                     return
 
+            handler = None
+            if currency != UNIFIED_CURRENCY:
+                handler = ExchangeRateHandler()
+                amount = handler(currency, amount)
+
             # log the record
             log_content = f"{message.author}: {ppl_to_pay} " \
-                          f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} {amount} {reason}"
+                          f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} " \
+                          f"{amount}{' ' + reason}{f' [{currency}]' if currency != UNIFIED_CURRENCY else ''}"
             write_log(log_content)
             await log_channel.send(log_content)
+
+            if handler:
+                handler.quit()
 
             # switch pay & paid for pay back operation
             if not operation_owe:
