@@ -60,10 +60,14 @@ def payment_record() -> str:
             else:
                 need_pay += f"**{record[0]}** needs to pay **{CENTRALIZED_PERSON}** _${record[1][1:]}_\n"
 
-        centralized_person = f"**{CENTRALIZED_PERSON}** {'needs to pay' if count > 0 else 'will receive'} " \
-                             f"{abs(round(count, 3))} in total"
+        centralized_person = f"**{CENTRALIZED_PERSON}** " + "doesn't need to pay" if count == 0 else \
+                             f"{'needs to pay' if count > 0 else 'will receive'} {abs(round(count, 3))} in total"
 
-    payment_record_content = zero + "\n" + take_money + "\n" + need_pay + "\n" + centralized_person
+    zero = zero + "\n" if zero else zero
+    take_money = take_money + "\n" if take_money else take_money
+    need_pay = need_pay + "\n" if need_pay else need_pay
+
+    payment_record_content = zero + take_money + need_pay + centralized_person
     return payment_record_content
 
 
@@ -194,87 +198,6 @@ def show_backup() -> str:
 
 
 def run():
-    '''
-        @bot.event
-        async def on_message(message):
-            if message.author == bot.user:  # avoid infinite calling itself
-                return
-
-            msg = message.content.lower().split()
-            if len(msg) == 0:
-                return
-
-            if msg[0] != COMMAND:
-                return
-
-            if len(msg) == 1:
-                await message.channel.send("gan man 18 sui ~~~")
-                return
-
-            if msg[1] == "help":
-                await message.channel.send(BOT_DESCRIPTION)
-                return
-
-            if msg[1] == "list":
-                await message.channel.send(payment_record())
-                return
-
-            if msg[1] == "total":
-                await message.channel.send(total_amount())
-                return
-
-            if msg[1] == "log":
-                await message.channel.send(show_log())
-                return
-
-            if msg[1] == "backup":
-                if len(msg) >= 3 and msg[2] == "do":
-                    do_backup()
-                    write_log(f"\n----------backup: [{time.ctime(time.time())}]----------")
-                    await message.channel.send("Backup done")
-                await message.channel.send(show_backup())
-                return
-
-            if len(msg) >= 3 and msg[1] == "delete":
-                delete_ppl(msg[20])
-                await message.channel.send(f"{msg[2]} successfully deleted!")
-                await message.channel.send("\n\nUpdated payment:\n" + payment_record())
-                write_log(message.author + ": " + message.content)
-                write_log(f"{message.author}: {message.content}")
-
-            if len(msg) >= 3 and msg[1] == "create":
-                create_ppl(msg[2])
-                await message.channel.send(f"{msg[2]} successfully created!")
-                await message.channel.send("\n\nUpdated payment:\n" + payment_record())
-                write_log(f"{message.author}: {message.content}")
-
-            if len(msg) >= 5 and msg[2] == "owe":  # msg[1] owe msg[3] msg[4]
-                """ avg logic: fuc up FUCKKKKKKKKKKKKKKKKKKKK
-                if len(msg) >= 6 and msg[5] == "avg":
-                    payment_handling(msg[1], msg[3], round(float(msg[4])/len(msg[3].split(',')), 3))
-                else:
-                    payment_handling(msg[1], msg[3], float(msg[4]))
-                    await message.channel.send("Payment record successfully updated!")
-                    await message.channel.send("\n\nUpdated payment:\n" + payment_record())
-                """
-                try:
-                    if float(msg[4]):
-                        pass
-                except ValueError:
-                    await message.channel.send("Entered amount not a number")
-                    return
-
-                write_log(f"{message.author}: {message.content}")
-                update = payment_handling(msg[1], msg[3], float(msg[4]))
-
-                if update:
-                    await message.channel.send("Payment record successfully updated!\n")
-                    await message.channel.send(update)
-                else:
-                    await message.channel.send("Person not found")
-                    write_log("-----ERROR: Person not found-----")
-        '''
-
     intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -320,107 +243,115 @@ def run():
 
     @bot.command()
     async def pm(message: commands.Context):
-        log_channel = bot.get_channel(LOG_CHANNEL_ID)
-        payment_data = payment_record_to_dict()
+        async def single_pm():
+            reason = None
 
-        reason = None
+            msg: list[str] = message.message.content.lower().split()
+            if len(msg) >= 5:
+                # command line UI (e.g. !pm p1,p2 owe p3,p4 100 (reason))
+                # fetching and check inputs
 
-        msg: list[str] = message.message.content.lower().split()
-        if len(msg) >= 5:
-            # command line UI (e.g. !pm p1,p2 owe p3,p4 100 (reason))
+                ppl_to_pay: str = msg[1].lower()
+                for ppl in ppl_to_pay.split(','):
+                    if ppl not in payment_data.keys().__str__().lower():
+                        await message.channel.send("**Invalid input for provider!**")
+                        return
 
-            # fetching and check inputs
+                operation: str = msg[2].lower()
+                if operation not in ["owe", "payback"]:
+                    await message.channel.send("**Invalid payment operation!**")
+                    return
+                else:
+                    operation_owe = operation == "owe"
 
-            ppl_to_pay: str = msg[1].lower()
-            for ppl in ppl_to_pay.split(','):
-                if ppl not in payment_data.keys().__str__().lower():
-                    await message.channel.send("**Invalid input for provider!**")
+                ppl_get_paid: str = msg[3].lower()
+                if ppl_get_paid not in payment_data.keys().__str__().lower():
+                    await message.channel.send("**Invalid input for receiver!**")
                     return
 
-            operation: str = msg[2].lower()
-            if operation not in ["owe", "payback"]:
-                await message.channel.send("**Invalid payment operation!**")
-                return
-            else:
-                operation_owe = operation == "owe"
-
-            ppl_get_paid: str = msg[3].lower()
-            if ppl_get_paid not in payment_data.keys().__str__().lower():
-                await message.channel.send("**Invalid input for receiver!**")
-                return
-
-            try:
-                amount = float(msg[4])
-                if amount == 0.0:
-                    await message.channel.send("**Invalid amount: amount cannot be zero!**")
+                try:
+                    amount = float(msg[4])
+                    if amount == 0.0:
+                        await message.channel.send("**Invalid amount: amount cannot be zero!**")
+                        return
+                except ValueError:
+                    await message.channel.send("**Invalid input for amount!**")
                     return
-            except ValueError:
-                await message.channel.send("**Invalid input for amount!**")
-                return
 
-            if len(msg) > 5:
-                reason = " ".join(msg[5:])
+                if len(msg) > 5:
+                    reason = " ".join(msg[5:])
+                else:
+                    reason = ""
+
+                if ppl_get_paid in ppl_to_pay.split(','):
+                    await message.channel.send("**Invalid input: one cannot pay himself!**")
+                    return
+
             else:
-                reason = ""
+                # graphic UI
+                menu = PMBotUI.View(payment_data)
+                menu.message = await message.send(view=menu)
+                await menu.wait()
 
-            if ppl_get_paid in ppl_to_pay.split(','):
-                await message.channel.send("**Invalid input: one cannot pay himself!**")
+                ppl_to_pay = menu.pay_text
+                operation_owe = menu.owe
+                ppl_get_paid = menu.paid_text
+                amount = menu.amount_text
+                reason = menu.reason if menu.reason else ""
+
+                if menu.cancelled:
+                    return
+                if not menu.finished:
+                    await message.channel.send("**> Input closed. You take too long!**")
+                    return
+
+            # log the record
+            log_content = f"{message.author}: {ppl_to_pay} " \
+                          f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} {amount} {reason}"
+            write_log(log_content)
+            await log_channel.send(log_content)
+
+            # switch pay & paid for pay back operation
+            if not operation_owe:
+                temp = ppl_to_pay
+                ppl_to_pay = ppl_get_paid
+                ppl_get_paid = temp
+
+            # perform the payment operation
+            update = payment_handling(ppl_to_pay, ppl_get_paid, float(amount))
+
+            # error occurred
+            if not update:
+                await message.channel.send("**ERROR: Payment handling failed**")
                 return
 
-        else:
-            # graphic UI
-            menu = PMBotUI.View(payment_data)
-            menu.message = await message.send(view=menu)
-            await menu.wait()
+            await message.channel.send("**Payment record successfully updated!**\n")
+            await message.channel.send("Updated records:\n" + update)
 
-            ppl_to_pay = menu.pay_text
-            operation_owe = menu.owe
-            ppl_get_paid = menu.paid_text
-            amount = menu.amount_text
-            reason = menu.reason if menu.reason else ""
+            undo_view = PMBotUI.UndoView()
+            undo_view.message = await message.send(view=undo_view)
+            await undo_view.wait()
 
-            if menu.cancelled:
-                return
-            if not menu.finished:
-                await message.channel.send("**> Input closed. You take too long!**")
-                return
+            # handle undo operation
+            if undo_view.undo:
+                undo_update = "Updated records:\n"
+                undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount))
+                await message.channel.send("**Undo has been executed!**")
+                await message.channel.send(undo_update)
+                undo_log_content = f"{message.author}: undo **[**{log_content}**]**"
+                write_log(undo_log_content)
+                await log_channel.send(undo_log_content)
 
-        # log the record
-        log_content = f"{message.author}: {ppl_to_pay} " \
-                      f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} {amount} {reason}"
-        write_log(log_content)
-        await log_channel.send(log_content)
-
-        # switch pay & paid for pay back operation
-        if not operation_owe:
-            temp = ppl_to_pay
-            ppl_to_pay = ppl_get_paid
-            ppl_get_paid = temp
-
-        # perform the payment operation
-        update = payment_handling(ppl_to_pay, ppl_get_paid, float(amount))
-
-        # error occurred
-        if not update:
-            await message.channel.send("**ERROR: Payment handling failed**")
+        if message.channel.id != PAYMENT_CHANNEL_ID:
+            await message.channel.send("Please input the record in the **payment** channel")
             return
 
-        await message.channel.send("**Payment record successfully updated!**\n")
-        await message.channel.send("Updated records:\n" + update)
-
-        undo_view = PMBotUI.UndoView()
-        undo_view.message = await message.send(view=undo_view)
-        await undo_view.wait()
-
-        # handle undo operation
-        if undo_view.undo:
-            undo_update = "Updated records:\n"
-            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount))
-            await message.channel.send("**Undo has been executed!**")
-            await message.channel.send(undo_update)
-            undo_log_content = f"{message.author}: undo **[**{log_content}**]**"
-            write_log(undo_log_content)
-            await log_channel.send(undo_log_content)
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        payment_data = payment_record_to_dict()
+        # for each_pm in message.message.content.split('\n'):
+        #     if each_pm:
+        #         await single_pm()
+        await single_pm()
 
     bot.run(BOT_KEY)
 
