@@ -1,7 +1,7 @@
 from discord.ext import commands
 import discord
 
-from ExchangeRateHandler import ExchangeRateHandler, is_supported_currency
+from ExchangeRateHandler import ExchangeRateHandler
 from constants import *
 from botInfo import *
 import PMBotUI
@@ -330,7 +330,7 @@ def run():
                     return
 
             handler = None
-            if currency != UNIFIED_CURRENCY:
+            if currency != UNIFIED_CURRENCY and currency in SUPPORTED_CURRENCY:
                 handler = ExchangeRateHandler()
                 amount = handler(currency, amount).split('.')
                 amount = amount[0] + '.' + amount[1][:ROUND_OFF_DP]

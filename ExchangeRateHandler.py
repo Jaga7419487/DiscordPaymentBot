@@ -3,12 +3,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
 
-from constants import UNIFIED_CURRENCY
+from constants import UNIFIED_CURRENCY, SUPPORTED_CURRENCY
 
 import time
-
-
-SupportedCurrency = ['HKD', 'CNY', "GBP"]
 
 
 LINK = "https://www.oanda.com/currency-converter/en/?from=CNY&to=USD&amount=12"
@@ -52,7 +49,7 @@ class ExchangeRateHandler:
         self.driver.quit()
 
     def __call__(self, base: str, amount: str, target=UNIFIED_CURRENCY) -> str:
-        if not is_supported_currency(base):
+        if not (base in SUPPORTED_CURRENCY and target in SUPPORTED_CURRENCY):
             raise ValueError("Unsupported currency")
         elif base == target:
             return amount
@@ -66,14 +63,10 @@ class ExchangeRateHandler:
         return self.get_amount(targetCur_amt_path)
 
 
-def is_supported_currency(currency: str) -> bool:
-    return currency in SupportedCurrency
-
-
 def switch_currency(currency: str) -> str:
-    currency = SupportedCurrency.index(currency)
-    currency = (currency + 1) % len(SupportedCurrency)
-    return SupportedCurrency[currency]
+    currency = SUPPORTED_CURRENCY.index(currency)
+    currency = (currency + 1) % len(SUPPORTED_CURRENCY)
+    return SUPPORTED_CURRENCY[currency]
 
 
 if __name__ == '__main__':
