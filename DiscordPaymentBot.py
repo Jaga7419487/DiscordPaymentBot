@@ -63,14 +63,16 @@ def payment_record() -> str:
             else:
                 need_pay += f"**{record[0]}** needs to pay **{CENTRALIZED_PERSON}** _${record[1][1:]}_\n"
 
-        centralized_person = f"**{CENTRALIZED_PERSON}** " + "doesn't need to pay" if count == 0 else \
-                             f"{'needs to pay' if count > 0 else 'will receive'} {abs(round(count, 3))} in total"
+        centralized_person = f"**{CENTRALIZED_PERSON}** "
+        centralized_person += "doesn't need to pay" if count == 0 else \
+                              f"{'needs to pay' if count > 0 else 'will receive'} {abs(round(count, 3))} in total"
 
     zero = zero + "\n" if zero else zero
     take_money = take_money + "\n" if take_money else take_money
     need_pay = need_pay + "\n" if need_pay else need_pay
 
     payment_record_content = zero + take_money + need_pay + centralized_person
+    print(payment_record_content)
     return payment_record_content
 
 
@@ -111,7 +113,7 @@ def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: fl
         return ""
 
     original = payment_data[target]
-    current = round(original + amount if add else original - amount, 3)
+    current = round(original + amount if add else original - amount, ROUND_OFF_DP)
     payment_data[target] = current
 
     p = original > 0
@@ -136,23 +138,23 @@ def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: fl
 
     # readability pro max!!!
     if p and c0:
-        return f"{CENTRALIZED_PERSON} needs to pay {target} ${original} -→ {target} doesn't need to pay\n"
+        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ {target} doesn't need to pay\n"
     elif not p and c0:
-        return f"{target} needs to pay {CENTRALIZED_PERSON} ${original} -→ {target} doesn't need to pay\n"
+        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ {target} doesn't need to pay\n"
     elif p0 and c:
-        return f"{CENTRALIZED_PERSON} needs to pay {target} ${current} (new record)\n"
+        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${current} (new record)\n"
     elif p0 and not c:
-        return f"{target} needs to pay {CENTRALIZED_PERSON} ${current} (new record)\n"
+        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${current} (new record)\n"
     elif p and c:
-        return f"{CENTRALIZED_PERSON} needs to pay {target}: ${original} -→ ${current}\n"
+        return f"> -# {CENTRALIZED_PERSON} needs to pay {target}: ${original} -→ ${current}\n"
     elif not p and c:
-        return f"{target} needs to pay {CENTRALIZED_PERSON} ${original} -→ " \
+        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ " \
                f"{CENTRALIZED_PERSON} needs to pay {target} ${current}\n"
     elif p and not c:
-        return f"{CENTRALIZED_PERSON} needs to pay {target} ${original} -→ " \
+        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ " \
                f"{target} needs to pay {CENTRALIZED_PERSON} ${current}\n"
     else:
-        return f"{target} needs to pay {CENTRALIZED_PERSON}: ${original} -→ ${current}\n"
+        return f"> -# {target} needs to pay {CENTRALIZED_PERSON}: ${original} -→ ${current}\n"
 
 
 def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
@@ -162,8 +164,10 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
 
     # main logic
     try:
-        for each_to_pay in ppl_to_pay.split(','):
-            for each_get_paid in ppl_get_paid.split(','):
+        pay_list = ppl_to_pay.split(',')
+        paid_list = ppl_get_paid.split(',')
+        for each_to_pay in pay_list:
+            for each_get_paid in paid_list:
                 if each_get_paid == CENTRALIZED_PERSON:
                     update += owe(payment_data, each_to_pay, CENTRALIZED_PERSON, amount)
                 elif each_to_pay == CENTRALIZED_PERSON:
@@ -171,7 +175,9 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
                 else:
                     update += owe(payment_data, each_to_pay, CENTRALIZED_PERSON, amount) + \
                               owe(payment_data, CENTRALIZED_PERSON, each_get_paid, amount)
-            update += "\n"
+                update += "> \n" if len(paid_list) > 1 else ""
+            update += "> \n" if len(pay_list) > 1 else ""
+        update = update[:-3]
     except KeyError:
         print("Person not found.")
         return ""
@@ -249,7 +255,7 @@ def run():
         async def single_pm():
             msg: list[str] = message.message.content.lower().split()
             if len(msg) >= 5:
-                # Command line UI (e.g. !pm p1,p2 owe p3,p4 100 -CNY (reason))
+                # Command line UI: e.g. !pm p1,p2 owe p3,p4 100 -CNY (reason)
                 ppl_to_pay: str = msg[1].lower()
                 for ppl in ppl_to_pay.split(','):
                     if ppl not in payment_data.keys().__str__().lower():
@@ -312,17 +318,16 @@ def run():
             handler = None
             if currency != UNIFIED_CURRENCY:
                 handler = ExchangeRateHandler()
-                amount = handler(currency, amount)
+                amount = handler(currency, amount).split('.')
+                amount = amount[0] + '.' + amount[1][:ROUND_OFF_DP]
+                amount = "".join(amount.split(','))
 
             # log the record
             log_content = f"{message.author}: {ppl_to_pay} " \
                           f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} " \
-                          f"{amount}{' ' + reason}{f' [{currency}]' if currency != UNIFIED_CURRENCY else ''}"
+                          f"${amount}{' ' + reason}"
             write_log(log_content)
             await log_channel.send(log_content)
-
-            if handler:
-                handler.quit()
 
             # switch pay & paid for pay back operation
             if not operation_owe:
@@ -338,19 +343,22 @@ def run():
                 await message.channel.send("**ERROR: Payment handling failed**")
                 return
 
-            await message.channel.send("**Payment record successfully updated!**\n")
-            await message.channel.send("Updated records:\n" + update)
+            await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`"
+                                       f"\n> -# Updated records:\n{update}")
 
             undo_view = PMBotUI.UndoView()
             undo_view.message = await message.send(view=undo_view)
+
+            if handler:
+                handler.quit()
+
             await undo_view.wait()
 
             # handle undo operation
             if undo_view.undo:
-                undo_update = "Updated records:\n"
+                undo_update = "> -# Updated records:\n"
                 undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount))
-                await message.channel.send("**Undo has been executed!**")
-                await message.channel.send(undo_update)
+                await message.channel.send("**Undo has been executed!**\n" + undo_update)
                 undo_log_content = f"{message.author}: undo **[**{log_content}**]**"
                 write_log(undo_log_content)
                 await log_channel.send(undo_log_content)

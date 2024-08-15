@@ -4,6 +4,7 @@ discord bot control:
 https://discord.com/developers/applications/1187756421807353867/bot
 
 discord text formatting:
+https://www.writebots.com/discord-text-formatting/
 https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-#h_01GY0EQVRRRB2F19HXC2BA30FG
 
 discord.py:

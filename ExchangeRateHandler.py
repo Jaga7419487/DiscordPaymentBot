@@ -27,6 +27,8 @@ class ExchangeRateHandler:
     driver = None
 
     def change_currency(self, cur: str, path) -> None:
+        present = EC.element_to_be_clickable(('xpath', path))  # check if button clickable
+        WebDriverWait(self.driver, 180).until(present)
         text_box = self.driver.find_element('xpath', path)
         text_box.click()
         text_box.send_keys(cur)
@@ -34,11 +36,15 @@ class ExchangeRateHandler:
         text_box.send_keys(Keys.ENTER)
 
     def enter_amount(self, amount: str, path) -> None:
+        present = EC.element_to_be_clickable(('xpath', path))  # check if button clickable
+        WebDriverWait(self.driver, 180).until(present)
         text_box = self.driver.find_element('xpath', path)
         text_box.send_keys(Keys.CONTROL + "a")
         text_box.send_keys("\b" + amount)
 
     def get_amount(self, path) -> str:
+        present = EC.presence_of_element_located(('xpath', path))  # check if button clickable
+        WebDriverWait(self.driver, 180).until(present)
         text_box = self.driver.find_element('xpath', path)
         return text_box.get_attribute('value')
 
@@ -53,10 +59,6 @@ class ExchangeRateHandler:
 
         self.driver = webdriver.Edge()
         self.driver.get(LINK)
-
-        present = EC.presence_of_element_located(('xpath', baseCur_ctry_edit_path))  # check if button clickable
-        WebDriverWait(self.driver, 180).until(present)
-
         self.change_currency(base, baseCur_ctry_edit_path)
         self.change_currency(target, targetCur_ctry_edit_path)
         self.enter_amount(amount, baseCur_amt_path)
