@@ -65,23 +65,27 @@ def payment_record() -> str:
 
         centralized_person = f"**{CENTRALIZED_PERSON}** "
         centralized_person += "doesn't need to pay" if count == 0 else \
-                              f"{'needs to pay' if count > 0 else 'will receive'} {abs(round(count, 3))} in total"
+                              f"{'needs to pay' if count > 0 else 'will receive'} ${abs(round(count, 3))} in total"
 
     zero = zero + "\n" if zero else zero
     take_money = take_money + "\n" if take_money else take_money
     need_pay = need_pay + "\n" if need_pay else need_pay
 
     payment_record_content = zero + take_money + need_pay + centralized_person
-    print(payment_record_content)
     return payment_record_content
 
 
-def create_ppl(name: str, amount=0.0) -> None:
-    with open(PAYMENT_RECORD_FILE, 'a', encoding='utf8') as file:
-        file.write(name + " " + str(amount) + "\n")
+def create_ppl(name: str, amount=0.0) -> bool:
+    try:
+        with open(PAYMENT_RECORD_FILE, 'a', encoding='utf8') as file:
+            file.write(name.lower() + " " + str(amount) + "\n")
+            return True
+    except Exception as e:
+        print(e)
+        return False
 
 
-def delete_ppl(target: str) -> None:
+def delete_ppl(target: str) -> bool:
     payment_data = {}
 
     with open(PAYMENT_RECORD_FILE, 'r', encoding='utf8') as file:
@@ -90,13 +94,16 @@ def delete_ppl(target: str) -> None:
             payment_data[record[0].lower()] = record[1]
 
     try:
+        if payment_data[target] != '0.0':
+            return False
         del payment_data[target]
     except KeyError:
-        print(f"{target} not found")
+        return False
 
     with open(PAYMENT_RECORD_FILE, "w+", encoding='utf8') as file:
         for name, amount in payment_data.items():
             file.write(name + ' ' + amount + "\n")
+    return True
 
 
 def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: float) -> str:
@@ -244,11 +251,18 @@ def run():
 
     @bot.command()
     async def create(message: commands.Context):
-        await message.channel.send("Oh no, lazy Jaga hasn't done this part")
+        if create_ppl(message.message.content.split()[1]):
+            await message.channel.send(f"### Person {message.message.content.split()[1]} created!\n{payment_record()}")
+        else:
+            await message.channel.send("Please input the name of the person to be created")
 
     @bot.command()
     async def delete(message: commands.Context):
-        await message.channel.send("Oh no, lazy Jaga hasn't done this part")
+        if delete_ppl(message.message.content.split()[1]):
+            await message.channel.send(f"**Person {message.message.content.split()[1]} deleted!**\n{payment_record()}")
+        else:
+            await message.channel.send(f"**Fail to delete {message.message.content.split()[1]}!**\n"
+                                       f"Person not found or has not paid off yet.")
 
     @bot.command()
     async def pm(message: commands.Context):
