@@ -21,27 +21,14 @@ def choices_to_text(choices: list):
 class OweButton(discord.ui.Button):
     def __init__(self):
         super().__init__(
-            label="owe",
-            custom_id="owe_btn",
-            row=0,
-            disabled=True
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        await self.view.owe_btn_response(interaction)
-
-
-class PayBackButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(
             label="pay back",
-            custom_id="pay_back_btn",
+            custom_id="owe_btn",
             row=0,
             disabled=False
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.pay_back_btn_response(interaction)
+        await self.view.owe_btn_response(interaction)
 
 
 class CurrencyButton(discord.ui.Button):
@@ -168,10 +155,9 @@ class View(discord.ui.View):
     reason = ""
     amount_text = "0"
     pay_text = paid_text = "???"
-    embed_text = discord.Embed(title="Payment record", colour=0xC57CEE)
+    embed_text = discord.Embed(title="Payment record", colour=0xC57CEE, description="??? owe ??? 0")
 
     owe_btn: OweButton = None
-    pay_back_btn: PayBackButton = None
     currency_btn: CurrencyButton = None
     ppl_to_pay_menu: SelectPplToPay = None
     person_get_paid_menu: SelectPersonGetPaid = None
@@ -184,7 +170,6 @@ class View(discord.ui.View):
         super().__init__(timeout=MENU_TIMEOUT)
 
         self.owe_btn = OweButton()
-        self.pay_back_btn = PayBackButton()
         self.currency_btn = CurrencyButton(self.currency)
         self.modal_trigger = ModalTrigger()
         self.enter_btn = EnterButton()
@@ -194,7 +179,6 @@ class View(discord.ui.View):
         self.person_get_paid_menu = SelectPersonGetPaid(record)
 
         self.add_item(self.owe_btn)
-        self.add_item(self.pay_back_btn)
         self.add_item(self.currency_btn)
         self.add_item(self.ppl_to_pay_menu)
         self.add_item(self.person_get_paid_menu)
@@ -204,7 +188,6 @@ class View(discord.ui.View):
 
     def __del__(self):
         del self.owe_btn
-        del self.pay_back_btn
         del self.currency_btn
         del self.modal_trigger
         del self.enter_btn
@@ -223,17 +206,8 @@ class View(discord.ui.View):
                     self.paid_text in self.pay_text)
 
     async def owe_btn_response(self, interaction: discord.Interaction):
-        self.owe_btn.disabled = True
-        self.pay_back_btn.disabled = False
-        self.owe = True
-        self.update_description()
-        await interaction.message.edit(view=self, embed=self.embed_text)
-        await interaction.response.defer()
-
-    async def pay_back_btn_response(self, interaction: discord.Interaction):
-        self.owe_btn.disabled = False
-        self.pay_back_btn.disabled = True
-        self.owe = False
+        self.owe = not self.owe
+        self.owe_btn.label = "pay back" if self.owe else "owe"
         self.update_description()
         await interaction.message.edit(view=self, embed=self.embed_text)
         await interaction.response.defer()

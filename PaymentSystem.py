@@ -251,8 +251,10 @@ async def payment_system(bot: commands.Bot, message):
             if len(msg) > 5:
                 if msg[5].startswith('-'):
                     currency = msg[5][1:].upper()
-                if len(msg) > 6:
-                    reason = " ".join(msg[6:])
+                    if len(msg) > 6:
+                        reason = " ".join(msg[6:])
+                else:
+                    reason = " ".join(msg[5:])
 
             if ppl_get_paid in ppl_to_pay.split(','):
                 await message.channel.send("**Invalid input: one cannot pay himself!**")
