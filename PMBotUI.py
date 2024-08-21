@@ -31,6 +31,19 @@ class OweButton(discord.ui.Button):
         await self.view.owe_btn_response(interaction)
 
 
+class ServiceChargeButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="+10%",
+            custom_id="service_charge_btn",
+            row=0,
+            disabled=False
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.view.service_charge_btn_response(interaction)
+
+
 class CurrencyButton(discord.ui.Button):
     def __init__(self, currency: str):
         super().__init__(
@@ -152,12 +165,14 @@ class View(discord.ui.View):
     finished = False
     owe = True
     currency = UNIFIED_CURRENCY
+    service_charge = False
     reason = ""
     amount_text = "0"
     pay_text = paid_text = "???"
     embed_text = discord.Embed(title="Payment record", colour=0xC57CEE, description="??? owe ??? 0")
 
     owe_btn: OweButton = None
+    service_charge_btn: ServiceChargeButton = None
     currency_btn: CurrencyButton = None
     ppl_to_pay_menu: SelectPplToPay = None
     person_get_paid_menu: SelectPersonGetPaid = None
@@ -170,6 +185,7 @@ class View(discord.ui.View):
         super().__init__(timeout=MENU_TIMEOUT)
 
         self.owe_btn = OweButton()
+        self.service_charge_btn = ServiceChargeButton()
         self.currency_btn = CurrencyButton(self.currency)
         self.modal_trigger = ModalTrigger()
         self.enter_btn = EnterButton()
@@ -179,6 +195,7 @@ class View(discord.ui.View):
         self.person_get_paid_menu = SelectPersonGetPaid(record)
 
         self.add_item(self.owe_btn)
+        self.add_item(self.service_charge_btn)
         self.add_item(self.currency_btn)
         self.add_item(self.ppl_to_pay_menu)
         self.add_item(self.person_get_paid_menu)
@@ -198,7 +215,8 @@ class View(discord.ui.View):
     def update_description(self) -> None:
         self.embed_text.description = f"{self.pay_text} {'owe' if self.owe else 'pay back'} {self.paid_text} " \
                                       f"{self.amount_text}{' '+self.reason}" \
-                                      f"{f' [{self.currency}]' if self.currency != UNIFIED_CURRENCY else ''}"
+                                      f"{f' [{self.currency}]' if self.currency != UNIFIED_CURRENCY else ''}" \
+                                      f"{' [×1.1]' if self.service_charge else ''}"
 
     def correct_input(self) -> bool:
         return not (self.pay_text == "???" or self.paid_text == "???" or
@@ -208,6 +226,13 @@ class View(discord.ui.View):
     async def owe_btn_response(self, interaction: discord.Interaction):
         self.owe = not self.owe
         self.owe_btn.label = "pay back" if self.owe else "owe"
+        self.update_description()
+        await interaction.message.edit(view=self, embed=self.embed_text)
+        await interaction.response.defer()
+
+    async def service_charge_btn_response(self, interaction: discord.Interaction):
+        self.service_charge = not self.service_charge
+        self.service_charge_btn.label = "✅" if self.service_charge else "+10%"
         self.update_description()
         await interaction.message.edit(view=self, embed=self.embed_text)
         await interaction.response.defer()

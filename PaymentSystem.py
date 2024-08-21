@@ -115,7 +115,7 @@ def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: fl
         target = person_to_pay
         add = False
     else:
-        write_log("funtion owe: centralized person not found")
+        write_log("function owe: centralized person not found")
         return ""
 
     original = payment_data[target]
@@ -183,7 +183,8 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
                               owe(payment_data, CENTRALIZED_PERSON, each_get_paid, amount)
                 update += "> \n" if len(paid_list) > 1 else ""
             update += "> \n" if len(pay_list) > 1 else ""
-        update = update[:-3]
+        if ">" in update[-3:]:
+            update = update[:-3] + update[-3:][:update[-3:].index(">")]
     except KeyError:
         print("Person not found.")
         return ""
@@ -211,6 +212,34 @@ def show_backup() -> str:
         for line in file:
             content += line
     return content
+
+
+def parse_optional_args(args: list[str]) -> tuple[bool, bool, [str]] or False:
+    service_charge = False
+    currency = UNIFIED_CURRENCY
+    reason = ""
+
+    for i in range(len(args)):
+        if i <= 1 and args[i].startswith('-'):
+            if args[i][1:].upper() not in SUPPORTED_CURRENCY:
+                return False
+            currency = args[i][1:].upper()
+        elif args[i] == "sc":
+            service_charge = True
+        else:
+            reason += args[i] + " "
+
+    # if len(args) > 5:
+    #     if args[5].startswith('-'):
+    #         service_charge = True
+    #         currency = args[5][1:].upper()
+    #         if currency not in SUPPORTED_CURRENCY:
+    #             return False, False, []
+    #         if len(args) > 6:
+    #             reason = " ".join(args[6:])
+    #     else:
+    #         reason = " ".join(args[5:])
+    return service_charge, currency, reason
 
 
 async def payment_system(bot: commands.Bot, message):
@@ -246,22 +275,18 @@ async def payment_system(bot: commands.Bot, message):
                 await message.channel.send("**Invalid input for amount!**")
                 return
 
-            currency = UNIFIED_CURRENCY
-            reason = ""
-            if len(msg) > 5:
-                if msg[5].startswith('-'):
-                    currency = msg[5][1:].upper()
-                    if len(msg) > 6:
-                        reason = " ".join(msg[6:])
-                else:
-                    reason = " ".join(msg[5:])
+            parse_result = parse_optional_args(msg[5:])
+            if not parse_result:
+                await message.channel.send("**Invalid currency!**")
+                return
+            service_charge, currency, reason = parse_result
 
             if ppl_get_paid in ppl_to_pay.split(','):
                 await message.channel.send("**Invalid input: one cannot pay himself!**")
                 return
 
         else:
-            # graphic UI
+            # Graphic UI
             menu = PMBotUI.View(payment_data)
             menu.message = await message.send(view=menu)
             await menu.wait()
@@ -270,6 +295,7 @@ async def payment_system(bot: commands.Bot, message):
             operation_owe = menu.owe
             ppl_get_paid = menu.paid_text
             amount = menu.amount_text
+            service_charge = menu.service_charge
             currency = menu.currency if menu.currency else UNIFIED_CURRENCY
             reason = menu.reason if menu.reason else ""
 
@@ -278,6 +304,8 @@ async def payment_system(bot: commands.Bot, message):
             if not menu.finished:
                 await message.channel.send("**> Input closed. You take too long!**")
                 return
+
+        amount = str(round(float(amount) * 1.1, ROUND_OFF_DP)) if service_charge else amount
 
         handler = None
         if currency != UNIFIED_CURRENCY and currency in SUPPORTED_CURRENCY:

@@ -36,12 +36,13 @@ BOT_DESCRIPTION = f"""
 `!showbackup`: Shows the backup records
 ### `!pm`: Enters a payment record (UI window if only `!pm` sent)
 > __Syntax:__
-> `!pm [payee] [operation] [get paid] [amount] [-CUR] [reason]`
+> `!pm [payee] [operation] [get paid] [amount] [-CUR] [sc] [reason]`
 > `payee`: People that should pay back the money later, separated by ',' without space
 > `operation`: `owe`/`payback`
 > `get paid`: Person that should be paid back later
 > `amount`: Up to 3 decimal point
 > `-CUR`: Optional: `HKD/CNY/GBP` (default `HKD`)
+> `sc`: Optional: include 10% service charge
 > `reason`: Optional
 > Example: `!pm personA,personB owe personC 100 -CNY (example)`
 
