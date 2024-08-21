@@ -4,8 +4,6 @@
 - Switch between login accounts (default by username)
 - set await 00:00 auto book
 """
-
-
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium import webdriver
@@ -54,7 +52,7 @@ def set_path(room: int, day: int, time_slot: int, duration: int) -> [str]:
     confirm_path = '/html/body/div[2]/div[3]/div/div[3]/button[2]'
     accept_path = '/html/body/div[3]/div[3]/div/div[3]/button[2]'
 
-    return [login_path, duo_path, time_slot_path, duration_path, confirm_path, accept_path]
+    return [login_path, duo_path, day_path, time_slot_path, duration_path, confirm_path, accept_path]
 
 
 def execute_booking() -> bool:
