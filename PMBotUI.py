@@ -216,7 +216,7 @@ class View(discord.ui.View):
         self.embed_text.description = f"{self.pay_text} {'owe' if self.owe else 'pay back'} {self.paid_text} " \
                                       f"{self.amount_text}{' '+self.reason}" \
                                       f"{f' [{self.currency}]' if self.currency != UNIFIED_CURRENCY else ''}" \
-                                      f"{' [×1.1]' if self.service_charge else ''}"
+                                      f"{' [+10%]' if self.service_charge else ''}"
 
     def correct_input(self) -> bool:
         return not (self.pay_text == "???" or self.paid_text == "???" or
