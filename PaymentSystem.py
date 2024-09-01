@@ -3,7 +3,7 @@ from discord.ext import commands
 from ExchangeRateHandler import ExchangeRateHandler
 from constants import *
 from botInfo import *
-import PMBotUI
+import PaymentSystemUI
 
 import time
 
@@ -229,16 +229,6 @@ def parse_optional_args(args: list[str]) -> tuple[bool, bool, [str]] or False:
         else:
             reason += args[i] + " "
 
-    # if len(args) > 5:
-    #     if args[5].startswith('-'):
-    #         service_charge = True
-    #         currency = args[5][1:].upper()
-    #         if currency not in SUPPORTED_CURRENCY:
-    #             return False, False, []
-    #         if len(args) > 6:
-    #             reason = " ".join(args[6:])
-    #     else:
-    #         reason = " ".join(args[5:])
     return service_charge, currency, reason
 
 
@@ -287,7 +277,7 @@ async def payment_system(bot: commands.Bot, message):
 
         else:
             # Graphic UI
-            menu = PMBotUI.View(payment_data)
+            menu = PaymentSystemUI.View(payment_data)
             menu.message = await message.send(view=menu)
             await menu.wait()
 
@@ -338,7 +328,7 @@ async def payment_system(bot: commands.Bot, message):
         await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`"
                                    f"\n> -# Updated records:\n{update}")
 
-        undo_view = PMBotUI.UndoView()
+        undo_view = PaymentSystemUI.UndoView()
         undo_view.message = await message.send(view=undo_view)
 
         if handler:

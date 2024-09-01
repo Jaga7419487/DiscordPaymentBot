@@ -17,13 +17,13 @@ link = 'https://w5.ab.ust.hk/wrm/app/login?path=/bookings/add/music-room/timetab
 def set_path(room: int, day: int, time_slot: int, duration: int) -> [str]:
     """
     :param room: 1/2 (111/114)
-    :param day: 1-7 (Mon-Sun)
-    :param time_slot: 1-30 (7am-10:30pm)
+    :param day: 1-7 (today:1, tmr:2, ...)
+    :param time_slot: 1-30 (7am-21:30pm)
     :param duration: 1/2/3/4 (0/5/1/1.5/2 hours)
     :return: list of paths to be clicked
 
     # Day buttons: '/html/body/div/div/div[2]/div[2]/div/div/div[DAY]/div/button'
-    # DAY: 1-7 (Mon-Sun)
+    # DAY: 1-7 (today:1, tmr:2, ...)
 
     # Time part buttons: '/html/body/div/div/div[2]/div[3]/div/div[ROOM]/div/div[1]/div/div/div/button[TIMEPART]'
     # ROOM: 2/3(111/114), TIMEPART: 1/2/3 (M/A/E)

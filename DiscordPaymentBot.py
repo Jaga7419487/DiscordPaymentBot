@@ -1,7 +1,7 @@
 from discord.ext import commands
 import discord
 
-from botInfo import BOT_KEY
+from botInfo import BOT_KEY, PAYMENT_CHANNEL_ID
 from constants import BOT_STATUS, BOT_DESCRIPTION, LOG_SHOW_NUMBER
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
 
@@ -13,6 +13,8 @@ def run():
     @bot.event
     async def on_ready():
         print(f"Current logged in user --> {bot.user}")
+        pm_channel = bot.get_channel(PAYMENT_CHANNEL_ID)
+        await pm_channel.send(f"## I am back!\n**Here is the payment record list:**\n{payment_record()}")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
 
     @bot.command()

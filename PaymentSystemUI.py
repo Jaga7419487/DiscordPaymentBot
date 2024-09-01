@@ -1,5 +1,4 @@
 import discord
-from discord.ext import commands
 from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY
 from ExchangeRateHandler import switch_currency
 
@@ -213,10 +212,11 @@ class View(discord.ui.View):
         del self.person_get_paid_menu
 
     def update_description(self) -> None:
-        self.embed_text.description = f"{self.pay_text} {'owe' if self.owe else 'pay back'} {self.paid_text} " \
-                                      f"{self.amount_text}{' '+self.reason}" \
-                                      f"{f' [{self.currency}]' if self.currency != UNIFIED_CURRENCY else ''}" \
-                                      f"{' [+10%]' if self.service_charge else ''}"
+        operation = "owe" if self.owe else "pay back"
+        currency_text = f"[{self.currency}]" if self.currency != UNIFIED_CURRENCY else ""
+        service_charge_text = ' [+10%]' if self.service_charge else ''
+        self.embed_text.description = f"{self.pay_text} {operation} {self.paid_text} " \
+                                      f"{self.amount_text} {self.reason}{currency_text}{service_charge_text}"
 
     def correct_input(self) -> bool:
         return not (self.pay_text == "???" or self.paid_text == "???" or
@@ -323,6 +323,8 @@ class UndoView(discord.ui.View):
 
 
 if __name__ == "__main__":
+    from discord.ext import commands
+
     BOT_KEY = "MTE4OTEyMDQ1NDkwMDg1NDg4Nw.GnLE86.Wb7f7Eh3UiC5zGdrFdDBwkxFFBYLrQgtVOj23g"  # test bot
     payment_data = {
         "ppl1": 100,
