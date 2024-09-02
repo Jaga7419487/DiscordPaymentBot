@@ -45,7 +45,7 @@ BOT_DESCRIPTION = f"""
 > `-CUR`: Optional: `HKD/CNY/GBP` (default `HKD`)
 > `sc`: Optional: include 10% service charge
 > `reason`: Optional
-> Example: `!pm personA,personB owe personC 100 -CNY (example)`
+> Example: `!pm personA,personB owe personC 100 -CNY sc (example)`
 
 -# Developed by __Jaga Chau__ 25-12-2023
 """

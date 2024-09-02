@@ -78,7 +78,7 @@ async def piano_system(bot: commands.Bot, message):
         check_and_click(paths[1], 300)  # duo mobile
 
         while 1:  # infinite loop for repeated booking
-            if True or time.ctime(time.time())[11:16] == '00:00':
+            if time.ctime(time.time())[11:16] == '00:00':
                 try:
                     driver.refresh()
                     for path in paths[2:]:
