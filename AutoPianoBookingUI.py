@@ -16,13 +16,45 @@ def day_to_options() -> [discord.SelectOption]:
     return options
 
 
+def timeslot_to_options(session) -> [discord.SelectOption]:
+    options = []
+    start = end = 0
+
+    match session:
+        case 1:
+            start = 1
+            end = 11
+        case 2:
+            start = 11
+            end = 23
+        case 3:
+            start = 23
+            end = 31
+        case _:
+            raise ValueError("[AutoPianoBookingUI] timeslot_to_options: Invalid session")
+
+    for i in range(start, end):
+        options.append(discord.SelectOption(label=number_to_time(i), value=str(i)))
+    return options
+
+
+def duration_to_options(n=4) -> [discord.SelectOption]:
+    options = [
+                discord.SelectOption(label="30 minutes", value="1"),
+                discord.SelectOption(label="1 hour", value="2"),
+                discord.SelectOption(label="1.5 hours", value="3"),
+                discord.SelectOption(label="2 hours", value="4")
+            ]
+    return options[:n]
+
+
 def number_to_day(num) -> str:
     day = datetime.today() + timedelta(days=num - 1)
     return day.strftime('%a')
 
 
 def number_to_time(num) -> str:
-    if num < 1 or num > 30:
+    if num < 1 or num > 31:
         return "???"
     start_time = datetime.strptime('07:00', '%H:%M')
     total_minutes = timedelta(minutes=(num-1)*30)
@@ -42,9 +74,9 @@ class RoomButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         if self.view.room == 0:
-            self.view.room = 111
-        self.view.room_btn.label = f"Room {self.view.room}"
-        self.view.room = 111 if self.view.room != 111 else 114
+            self.view.room = 1
+        self.view.room_btn.label = f"Room {'111' if self.view.room == 1 else '114'}"
+        self.view.room = 1 if self.view.room != 1 else 2
         self.view.update_description()
         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
@@ -63,6 +95,8 @@ class MorningButton(discord.ui.Button):
         self.view.morning_btn.disabled = True
         self.view.afternoon_btn.disabled = False
         self.view.evening_btn.disabled = False
+
+        self.view.time_slot_menu.options = timeslot_to_options(1)
 
         self.view.time_slot = 0
         self.view.duration = 0
@@ -86,6 +120,8 @@ class AfternoonButton(discord.ui.Button):
         self.view.afternoon_btn.disabled = True
         self.view.evening_btn.disabled = False
 
+        self.view.time_slot_menu.options = timeslot_to_options(2)
+
         self.view.time_slot = 0
         self.view.duration = 0
         self.view.time_part = 2
@@ -107,6 +143,8 @@ class EveningButton(discord.ui.Button):
         self.view.morning_btn.disabled = False
         self.view.afternoon_btn.disabled = False
         self.view.evening_btn.disabled = True
+
+        self.view.time_slot_menu.options = timeslot_to_options(3)
 
         self.view.time_slot = 0
         self.view.duration = 0
@@ -133,20 +171,36 @@ class DayMenu(discord.ui.Select):
         await interaction.response.defer()
 
 
-class TimeslotMenu(discord.ui.Select):
+class TimeSlotMenu(discord.ui.Select):
     def __init__(self):
         # changeable menu from session
-        options = [discord.SelectOption(label=number_to_time(i), value=str(i)) for i in range(1, 31)]
+        options = timeslot_to_options(1)
         super().__init__(
-            placeholder="Select a time slot",
+            placeholder="Which time?",
             options=options,
             custom_id="time_slot_menu",
             row=2
         )
 
     async def callback(self, interaction: discord.Interaction):
-        # consider session as well
-        # self.view.time_slot = int(self.values[0])
+        self.view.time_slot = int(self.values[0])
+        self.view.update_description()
+        self.view.duration_menu.options = duration_to_options(31 - self.view.time_slot)
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        await interaction.response.defer()
+
+
+class DurationMenu(discord.ui.Select):
+    def __init__(self):
+        super().__init__(
+            placeholder="How long?",
+            options=duration_to_options(),
+            custom_id="duration_menu",
+            row=3
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        self.view.duration = int(self.values[0])
         self.view.update_description()
         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
@@ -157,7 +211,7 @@ class EnterButton(discord.ui.Button):
         super().__init__(
             label="Enter",
             custom_id="enter_btn",
-            row=3,
+            row=4,
             style=discord.ButtonStyle.primary,
             disabled=False
         )
@@ -180,7 +234,7 @@ class CancelButton(discord.ui.Button):
         super().__init__(
             label="Cancel",
             custom_id="cancel_btn",
-            row=3,
+            row=4,
             style=discord.ButtonStyle.danger,
             disabled=False
         )
@@ -194,7 +248,7 @@ class CancelButton(discord.ui.Button):
 
 
 class View(discord.ui.View):
-    room = 111  # 111/114
+    room = 1  # 111/114
     day = 0  # 1-7 (today:1, tmr:2, ...)
     time_part = 1  # 1/2/3 (M/A/E)
     time_slot = 1  # 1-30: 10+12+8 (M/A/E: 07/12/18)
@@ -206,7 +260,8 @@ class View(discord.ui.View):
     afternoon_btn: AfternoonButton = None
     evening_btn: EveningButton = None
     day_menu: DayMenu = None
-    time_slot_menu = None
+    time_slot_menu: TimeSlotMenu = None
+    duration_menu: DurationMenu = None
     enter_btn: EnterButton = None
     cancel_btn: CancelButton = None
 
@@ -218,6 +273,8 @@ class View(discord.ui.View):
         self.afternoon_btn = AfternoonButton()
         self.evening_btn = EveningButton()
         self.day_menu = DayMenu()
+        self.time_slot_menu = TimeSlotMenu()
+        self.duration_menu = DurationMenu()
         self.enter_btn = EnterButton()
         self.cancel_btn = CancelButton()
 
@@ -226,15 +283,17 @@ class View(discord.ui.View):
         self.add_item(self.afternoon_btn)
         self.add_item(self.evening_btn)
         self.add_item(self.day_menu)
+        self.add_item(self.time_slot_menu)
+        self.add_item(self.duration_menu)
         self.add_item(self.enter_btn)
         self.add_item(self.cancel_btn)
 
     def update_description(self) -> None:
-        day_text = number_to_day(self.day)
+        room_text = f"Room {'111' if self.room == 1 else '114'}"
+        day_text = number_to_day(self.day) if self.day != 0 else '???'
         time_slot_text = 'Morning' if self.time_part == 1 else 'Afternoon' if self.time_part == 2 else 'Evening'
         time_period_text = f"{number_to_time(self.time_slot)} ~ {number_to_time(self.time_slot + self.duration)}"
-
-        self.embed_text.description = f"Room {self.room} {day_text} {time_slot_text} {time_period_text}"
+        self.embed_text.description = f"{room_text} {day_text} {time_slot_text} {time_period_text}"
 
     def correct_input(self) -> bool:
         return self.day != 0 and self.time_part != 0 and self.time_slot != 0 and self.duration != 0
@@ -265,7 +324,7 @@ if __name__ == "__main__":
         await menu.wait()
         room = menu.room
         day = menu.day
-        time_slot = menu.time_part
+        time_slot = menu.time_slot
         duration = menu.duration
 
         await ctx.send(f"Room:{room}; day:{day}; time_slot:{time_slot}; duration:{duration}")
