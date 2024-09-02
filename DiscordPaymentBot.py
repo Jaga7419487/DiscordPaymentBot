@@ -4,6 +4,7 @@ import discord
 from botInfo import BOT_KEY, PAYMENT_CHANNEL_ID
 from constants import BOT_STATUS, BOT_DESCRIPTION, LOG_SHOW_NUMBER
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
+from AutoPianoBooking import piano_system
 
 
 def run():
@@ -63,7 +64,7 @@ def run():
 
     @bot.command()
     async def piano(message: commands.Context):
-        await message.channel.send("Piano booking system is under construction")
+        await piano_system(bot, message)
 
     bot.run(BOT_KEY)
 

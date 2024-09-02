@@ -1,6 +1,7 @@
-import discord
 from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY
 from ExchangeRateHandler import switch_currency
+
+import discord
 
 
 def dict_to_options(record_dict: dict):

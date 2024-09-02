@@ -7,11 +7,8 @@ from constants import MENU_TIMEOUT
 def day_to_options() -> [discord.SelectOption]:
     options = []
     for i in range(7):
-        day = datetime.today() + timedelta(days=i)
-        if i == 0:
-            label = f"{day.strftime('%a')} (Today)"
-        else:
-            label = f"{day.strftime('%a')} ({day.strftime('%d/%m')})"
+        day = datetime.today() + timedelta(days=i+1)
+        label = f"{day.strftime('%a')} ({day.strftime('%d/%m')})"
         options.append(discord.SelectOption(label=label, value=str(i+1)))
     return options
 
@@ -290,7 +287,7 @@ class View(discord.ui.View):
 
     def update_description(self) -> None:
         room_text = f"Room {'111' if self.room == 1 else '114'}"
-        day_text = number_to_day(self.day) if self.day != 0 else '???'
+        day_text = number_to_day(self.day + 1) if self.day != 0 else '???'
         time_slot_text = 'Morning' if self.time_part == 1 else 'Afternoon' if self.time_part == 2 else 'Evening'
         time_period_text = f"{number_to_time(self.time_slot)} ~ {number_to_time(self.time_slot + self.duration)}"
         self.embed_text.description = f"{room_text} {day_text} {time_slot_text} {time_period_text}"
@@ -328,5 +325,6 @@ if __name__ == "__main__":
         duration = menu.duration
 
         await ctx.send(f"Room:{room}; day:{day}; time_slot:{time_slot}; duration:{duration}")
+        await ctx.send(menu.embed_text.description)
 
     bot.run(BOT_KEY)

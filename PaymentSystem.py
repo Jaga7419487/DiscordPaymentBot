@@ -1,10 +1,9 @@
 from discord.ext import commands
-
 from ExchangeRateHandler import ExchangeRateHandler
 from constants import *
 from botInfo import *
-import PaymentSystemUI
 
+import PaymentSystemUI
 import time
 
 
