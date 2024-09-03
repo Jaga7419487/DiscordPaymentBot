@@ -237,6 +237,7 @@ class CancelButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        self.view.cancelled = True
         for item in self.view.children:
             item.disabled = True
         await interaction.message.edit(view=self.view)
@@ -245,6 +246,7 @@ class CancelButton(discord.ui.Button):
 
 
 class View(discord.ui.View):
+    cancelled = False
     room = 1  # 111/114
     day = 0  # 1-7 (today:1, tmr:2, ...)
     time_part = 1  # 1/2/3 (M/A/E)
@@ -264,6 +266,8 @@ class View(discord.ui.View):
 
     def __init__(self):
         super().__init__(timeout=MENU_TIMEOUT)
+
+        self.cancelled = False
 
         self.room_btn = RoomButton()
         self.morning_btn = MorningButton()
@@ -296,6 +300,7 @@ class View(discord.ui.View):
         return self.day != 0 and self.time_part != 0 and self.time_slot != 0 and self.duration != 0
 
     async def on_timeout(self) -> None:
+        self.cancelled = True
         for item in self.children:
             item.disabled = True
         await self.message.edit(view=self)
