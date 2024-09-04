@@ -8,6 +8,7 @@ from discord.ext import commands
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium import webdriver
+from botInfo import HOSTER
 
 import AutoPianoBookingUI
 import functools
@@ -96,7 +97,12 @@ async def piano_system(bot: commands.Bot, message):
 
         paths = set_path(menu.room, menu.day, menu.time_slot, menu.duration)
 
-        driver = webdriver.Edge()
+        if HOSTER == "Mac":
+            driver = webdriver.Safari()
+        elif HOSTER == "Windows":
+            driver = webdriver.Edge()
+        else:
+            raise ValueError("[AutoPianoBooking] piano_system: Invalid hoster")
         driver.get(link)
 
         await message.channel.send("### Start waiting for 00:00 to book the piano room!")

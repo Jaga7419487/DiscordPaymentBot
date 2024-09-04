@@ -4,6 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
 
 from constants import UNIFIED_CURRENCY, SUPPORTED_CURRENCY
+from botInfo import HOSTER
 
 import time
 
@@ -54,7 +55,12 @@ class ExchangeRateHandler:
         elif base == target:
             return amount
 
-        self.driver = webdriver.Edge()
+        if HOSTER == "Mac":
+            self.driver = webdriver.Safari()
+        elif HOSTER == "Windows":
+            self.driver = webdriver.Edge()
+        else:
+            raise ValueError("[ExchangeRateHandler] Invalid hoster")
         self.driver.get(LINK)
         self.change_currency(base, baseCur_ctry_edit_path)
         self.change_currency(target, targetCur_ctry_edit_path)
