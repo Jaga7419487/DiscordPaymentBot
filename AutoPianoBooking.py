@@ -1,9 +1,3 @@
-"""
-- Check if cant book
-- UI control booking details
-- Switch between login accounts (default by username)
-- set await 00:00 auto book
-"""
 from discord.ext import commands
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -100,7 +94,7 @@ async def piano_system(bot: commands.Bot, message):
             continue
 
     try:
-        menu = AutoPianoBookingUI.View()
+        menu = AutoPianoBookingUI.View(message.author)
         menu.message = await message.send(view=menu)
         await menu.wait()
 

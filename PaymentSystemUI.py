@@ -55,7 +55,11 @@ class CurrencyButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.currency_btn_response(interaction)
+        self.view.currency = switch_currency(self.view.currency)
+        self.view.currency_btn.label = switch_currency(self.view.currency)
+        self.view.update_description()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        await interaction.response.defer()
 
 
 class SelectPplToPay(discord.ui.Select):
@@ -186,7 +190,7 @@ class View(discord.ui.View):
 
         self.owe_btn = OweButton()
         self.service_charge_btn = ServiceChargeButton()
-        self.currency_btn = CurrencyButton(self.currency)
+        self.currency_btn = CurrencyButton(switch_currency(self.currency))
         self.modal_trigger = ModalTrigger()
         self.enter_btn = EnterButton()
         self.cancel_btn = CancelButton()
@@ -234,13 +238,6 @@ class View(discord.ui.View):
     async def service_charge_btn_response(self, interaction: discord.Interaction):
         self.service_charge = not self.service_charge
         self.service_charge_btn.label = "✅" if self.service_charge else "+10%"
-        self.update_description()
-        await interaction.message.edit(view=self, embed=self.embed_text)
-        await interaction.response.defer()
-
-    async def currency_btn_response(self, interaction: discord.Interaction):
-        self.currency = switch_currency(self.currency)
-        self.currency_btn.label = self.currency
         self.update_description()
         await interaction.message.edit(view=self, embed=self.embed_text)
         await interaction.response.defer()

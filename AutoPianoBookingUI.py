@@ -5,6 +5,16 @@ from constants import MENU_TIMEOUT
 from botInfo import USERNAMES
 
 
+def discord_username_to_login_name(username: str) -> int:
+    match username:
+        case "stickmanjc":
+            return USERNAMES.index("Jaga")
+        case "usufio":
+            return USERNAMES.index("Larry")
+        case _:
+            return 0
+
+
 def day_to_options() -> [discord.SelectOption]:
     options = []
     for i in range(7):
@@ -61,9 +71,9 @@ def number_to_time(num) -> str:
 
 
 class UserButton(discord.ui.Button):
-    def __init__(self):
+    def __init__(self, user_index):
         super().__init__(
-            label="Larry",
+            label=USERNAMES[user_index],
             custom_id="user_btn",
             row=0,
             disabled=False
@@ -287,13 +297,14 @@ class View(discord.ui.View):
     enter_btn: EnterButton = None
     cancel_btn: CancelButton = None
 
-    def __init__(self):
+    def __init__(self, bot_caller: str):
         super().__init__(timeout=MENU_TIMEOUT)
 
         self.cancelled = False
-        self.cancelled = False
+        self.finished = False
+        self.user = discord_username_to_login_name(bot_caller)
 
-        self.user_btn = UserButton()
+        self.user_btn = UserButton((self.user + 1) % len(USERNAMES))
         self.room_btn = RoomButton()
         self.morning_btn = MorningButton()
         self.afternoon_btn = AfternoonButton()
