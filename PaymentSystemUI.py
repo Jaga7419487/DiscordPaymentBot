@@ -28,7 +28,11 @@ class OweButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.owe_btn_response(interaction)
+        self.view.owe = not self.view.owe
+        self.view.owe_btn.label = "pay back" if self.view.owe else "owe"
+        self.view.update_description()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        await interaction.response.defer()
 
 
 class ServiceChargeButton(discord.ui.Button):
@@ -41,7 +45,11 @@ class ServiceChargeButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.service_charge_btn_response(interaction)
+        self.view.service_charge = not self.view.service_charge
+        self.view.service_charge_btn.label = "✅" if self.view.service_charge else "+10%"
+        self.view.update_description()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        await interaction.response.defer()
 
 
 class CurrencyButton(discord.ui.Button):
@@ -68,7 +76,11 @@ class SelectPplToPay(discord.ui.Select):
         super().__init__(options=options, placeholder="Who needs to pay?", max_values=len(options), row=1)
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.ppl_to_pay_response(interaction, self.values)
+        self.view.pay_text = choices_to_text(self.values)
+        self.view.update_description()
+        self.view.enter_btn.disabled = False if self.view.correct_input() else True
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        await interaction.response.defer()
 
 
 class SelectPersonGetPaid(discord.ui.Select):
@@ -77,7 +89,11 @@ class SelectPersonGetPaid(discord.ui.Select):
         super().__init__(options=options, placeholder="Who will get paid?", row=2)
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.person_get_paid_response(interaction, self.values[0])
+        self.view.paid_text = self.values[0]
+        self.view.update_description()
+        self.view.enter_btn.disabled = False if self.view.correct_input() else True
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        await interaction.response.defer()
 
 
 class AmountModal(discord.ui.Modal):
@@ -120,7 +136,15 @@ class ModalTrigger(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.modal_trigger_response(interaction)
+        self.view.amount_modal = AmountModal(float(self.view.amount_text))
+        await interaction.response.send_modal(self.view.amount_modal)
+        await self.view.amount_modal.wait()
+
+        self.view.amount_text = f"{self.view.amount_modal.amount}"
+        self.view.reason = self.view.amount_modal.reason
+        self.view.update_description()
+        self.view.enter_btn.disabled = False if self.view.correct_input() else True
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
 
 
 class EnterButton(discord.ui.Button):
@@ -134,7 +158,19 @@ class EnterButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.enter_btn_response(interaction)
+        if not self.view.correct_input():
+            await interaction.response.send_message(
+                "Incorrect input! (This message should not appear)",
+                ephemeral=True
+            )
+            await interaction.response.defer()
+        else:
+            self.view.finished = True
+            for item in self.view.children:
+                item.disabled = True
+            await interaction.message.edit(view=self.view)
+            await interaction.response.defer()
+            self.view.stop()
 
 
 class CancelButton(discord.ui.Button):
@@ -148,7 +184,12 @@ class CancelButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.cancel_btn_response(interaction)
+        self.view.cancelled = True
+        for item in self.view.children:
+            item.disabled = True
+        await interaction.message.edit(view=self.view)
+        await interaction.response.send_message("Process cancelled!", ephemeral=True)
+        self.view.stop()
 
 
 class UndoButton(discord.ui.Button):
@@ -161,7 +202,12 @@ class UndoButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await self.view.undo_btn_response(interaction)
+        self.view.undo = True
+        self.view.children[0].disabled = True
+        self.view.children[0].label = "Undo done"
+        await self.view.message.edit(view=self.view)
+        await interaction.response.defer()
+        self.view.stop()
 
 
 class View(discord.ui.View):
@@ -228,68 +274,6 @@ class View(discord.ui.View):
                     self.amount_text == '0' or self.amount_text == "0.0" or
                     self.paid_text in self.pay_text)
 
-    async def owe_btn_response(self, interaction: discord.Interaction):
-        self.owe = not self.owe
-        self.owe_btn.label = "pay back" if self.owe else "owe"
-        self.update_description()
-        await interaction.message.edit(view=self, embed=self.embed_text)
-        await interaction.response.defer()
-
-    async def service_charge_btn_response(self, interaction: discord.Interaction):
-        self.service_charge = not self.service_charge
-        self.service_charge_btn.label = "✅" if self.service_charge else "+10%"
-        self.update_description()
-        await interaction.message.edit(view=self, embed=self.embed_text)
-        await interaction.response.defer()
-
-    async def ppl_to_pay_response(self, interaction: discord.Interaction, choices: list):
-        self.pay_text = choices_to_text(choices)
-        self.update_description()
-        self.enter_btn.disabled = False if self.correct_input() else True
-        await interaction.message.edit(view=self, embed=self.embed_text)
-        await interaction.response.defer()
-
-    async def person_get_paid_response(self, interaction: discord.Interaction, choice: str):
-        self.paid_text = choice
-        self.update_description()
-        self.enter_btn.disabled = False if self.correct_input() else True
-        await interaction.message.edit(view=self, embed=self.embed_text)
-        await interaction.response.defer()
-
-    async def modal_trigger_response(self, interaction: discord.Interaction):
-        self.amount_modal = AmountModal(float(self.amount_text))
-        await interaction.response.send_modal(self.amount_modal)
-        await self.amount_modal.wait()
-
-        self.amount_text = f"{self.amount_modal.amount}"
-        self.reason = self.amount_modal.reason
-        self.update_description()
-        self.enter_btn.disabled = False if self.correct_input() else True
-        await interaction.message.edit(view=self, embed=self.embed_text)
-
-    async def enter_btn_response(self, interaction: discord.Interaction):
-        if not self.correct_input():
-            await interaction.response.send_message(
-                "Incorrect input! (This message should not appear)",
-                ephemeral=True
-            )
-            await interaction.response.defer()
-        else:
-            self.finished = True
-            for item in self.children:
-                item.disabled = True
-            await interaction.message.edit(view=self)
-            await interaction.response.defer()
-            self.stop()
-
-    async def cancel_btn_response(self, interaction: discord.Interaction):
-        self.cancelled = True
-        for item in self.children:
-            item.disabled = True
-        await interaction.message.edit(view=self)
-        await interaction.response.send_message("Process cancelled!", ephemeral=True)
-        self.stop()
-
     async def on_timeout(self) -> None:
         for item in self.children:
             item.disabled = True
@@ -306,14 +290,6 @@ class UndoView(discord.ui.View):
         self.undo = False
         self.undo_btn = UndoButton()
         self.add_item(self.undo_btn)
-
-    async def undo_btn_response(self, interaction: discord.Interaction):
-        self.undo = True
-        self.children[0].disabled = True
-        self.children[0].label = "Undo done"
-        await self.message.edit(view=self)
-        await interaction.response.defer()
-        self.stop()
 
     async def on_timeout(self) -> None:
         self.children[0].disabled = True
