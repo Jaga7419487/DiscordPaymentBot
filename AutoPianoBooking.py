@@ -46,7 +46,7 @@ def set_path(room: int, day: int, time_slot: int, duration: int) -> [str]:
     login_path = '/html/body/div/div/div/div/form/nav/li[2]/div[1]'
     login_username_path = '/html/body/div/form[1]/div/div/div[2]/div[1]/div/div/div/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div/input[1]'
     login_password_path = '/html/body/div/form[1]/div/div/div[2]/div[1]/div/div/div/div/div/div[3]/div/div[2]/div/div[3]/div/div[2]/input'
-    duo_path = '//*[@id="trust-browser-button"]'
+    duo_path = '/html/body/div/div/div[1]/div/div[2]/div[3]/button'
     day_path = f'/html/body/div/div/div[2]/div[2]/div/div/div[{day}]/div/button'
     time_part_path = f'/html/body/div/div/div[2]/div[3]/div/div[{room}]/div/div[1]/div/div/div/button[{time_part}]'
     time_slot_path = f'/html/body/div/div/div[2]/div[3]/div/div[{room}]/div/div[2]/div[{time_part}]/button[{session}]'
@@ -106,14 +106,15 @@ async def piano_system(bot: commands.Bot, message):
 
         paths = set_path(menu.room, menu.day, menu.time_slot, menu.duration)
 
-        if HOSTER == "Mac":
-            driver = webdriver.Safari()
-        elif HOSTER == "Windows":
-            options = webdriver.EdgeOptions()
-            options.add_argument('-inprivate')
-            driver = webdriver.Edge(options=options)
-        else:
-            raise ValueError("[AutoPianoBooking] piano_system: Invalid hoster")
+        # if HOSTER == "Mac":
+        #     driver = webdriver.Safari()
+        # elif HOSTER == "Windows":
+        #     options = webdriver.EdgeOptions()
+        #     options.add_argument('-inprivate')
+        #     driver = webdriver.Edge(options=options)
+        # else:
+        #     raise ValueError("[AutoPianoBooking] piano_system: Invalid hoster")
+        driver = webdriver.Chrome()
         driver.get(link)
 
         check_and_click(paths[0], 300)  # login

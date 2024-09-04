@@ -59,12 +59,13 @@ class ExchangeRateHandler:
         elif base == target:
             return amount
 
-        if HOSTER == "Mac":
-            self.driver = webdriver.Safari()
-        elif HOSTER == "Windows":
-            self.driver = webdriver.Edge()
-        else:
-            raise ValueError("[ExchangeRateHandler] Invalid hoster")
+        # if HOSTER == "Mac":
+        #     self.driver = webdriver.Safari()
+        # elif HOSTER == "Windows":
+        #     self.driver = webdriver.Edge()
+        # else:
+        #     raise ValueError("[ExchangeRateHandler] Invalid hoster")
+        self.driver = webdriver.Chrome()
         self.driver.get(LINK)
         self.change_currency(base, baseCur_ctry_edit_path)
         self.change_currency(target, targetCur_ctry_edit_path)
