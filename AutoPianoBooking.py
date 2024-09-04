@@ -7,8 +7,9 @@
 from discord.ext import commands
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
-from botInfo import HOSTER
+from botInfo import HOSTER, USERS
 
 import AutoPianoBookingUI
 import functools
@@ -49,6 +50,8 @@ def set_path(room: int, day: int, time_slot: int, duration: int) -> [str]:
     session = time_slot if time_slot <= 10 else time_slot - 10 if time_slot <= 22 else time_slot - 22
 
     login_path = '/html/body/div/div/div/div/form/nav/li[2]/div[1]'
+    login_username_path = '/html/body/div/form[1]/div/div/div[2]/div[1]/div/div/div/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div/input[1]'
+    login_password_path = '/html/body/div/form[1]/div/div/div[2]/div[1]/div/div/div/div/div/div[3]/div/div[2]/div/div[3]/div/div[2]/input'
     duo_path = '//*[@id="trust-browser-button"]'
     day_path = f'/html/body/div/div/div[2]/div[2]/div/div/div[{day}]/div/button'
     time_part_path = f'/html/body/div/div/div[2]/div[3]/div/div[{room}]/div/div[1]/div/div/div/button[{time_part}]'
@@ -57,7 +60,8 @@ def set_path(room: int, day: int, time_slot: int, duration: int) -> [str]:
     confirm_path = '/html/body/div[2]/div[3]/div/div[3]/button[2]'
     accept_path = '/html/body/div[3]/div[3]/div/div[3]/button[2]'
 
-    return [login_path, duo_path, day_path, time_part_path, time_slot_path, duration_path, confirm_path, accept_path]
+    return [login_path, login_username_path, login_password_path, duo_path, day_path, time_part_path, time_slot_path,
+            duration_path, confirm_path, accept_path]
 
 
 async def piano_system(bot: commands.Bot, message):
@@ -74,15 +78,20 @@ async def piano_system(bot: commands.Bot, message):
             raise RuntimeError("Target button is not enabled")
         button.click()
 
-    def execute_booking() -> bool:
-        check_and_click(paths[0], 300)  # login
-        check_and_click(paths[1], 300)  # duo mobile
+    def check_and_write(xpath: str, text: str, timeout=300) -> None:
+        present = EC.presence_of_element_located(('xpath', xpath))  # check if button clickable
+        WebDriverWait(driver, timeout).until(present)  # wait until the button is clickable, else return error
+        input_field = driver.find_element('xpath', xpath)  # locate the corresponding button
+        if not input_field.is_enabled():
+            raise RuntimeError("Target button is not enabled")
+        input_field.send_keys(text+Keys.ENTER)
 
+    def execute_booking() -> bool:
         while 1:  # infinite loop for repeated booking
             if time.ctime(time.time())[11:16] == '00:00':
                 try:
                     driver.refresh()
-                    for path in paths[2:]:
+                    for path in paths[4:]:
                         check_and_click(path)
                     return True
                 except Exception as err:
@@ -95,15 +104,29 @@ async def piano_system(bot: commands.Bot, message):
         menu.message = await message.send(view=menu)
         await menu.wait()
 
+        if menu.cancelled:
+            return
+        if not menu.finished:
+            await message.channel.send("**> Input closed. You take too long!**")
+            return
+
         paths = set_path(menu.room, menu.day, menu.time_slot, menu.duration)
 
         if HOSTER == "Mac":
             driver = webdriver.Safari()
         elif HOSTER == "Windows":
-            driver = webdriver.Edge()
+            options = webdriver.EdgeOptions()
+            options.add_argument('-inprivate')
+            driver = webdriver.Edge(options=options)
         else:
             raise ValueError("[AutoPianoBooking] piano_system: Invalid hoster")
         driver.get(link)
+
+        check_and_click(paths[0], 300)  # login
+        check_and_write(paths[1], USERS[menu.user]["username"], 300)  # username
+        check_and_write(paths[2], USERS[menu.user]["password"], 300)  # password
+        await message.channel.send("### Please check your duo mobile!")
+        check_and_click(paths[3], 300)  # duo mobile
 
         await message.channel.send("### Start waiting for 00:00 to book the piano room!")
         if await run_blocking(execute_booking):

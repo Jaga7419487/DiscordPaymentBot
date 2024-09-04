@@ -2,6 +2,7 @@ import discord
 
 from datetime import datetime, timedelta
 from constants import MENU_TIMEOUT
+from botInfo import USERNAMES
 
 
 def day_to_options() -> [discord.SelectOption]:
@@ -57,6 +58,24 @@ def number_to_time(num) -> str:
     total_minutes = timedelta(minutes=(num-1)*30)
     new_time = start_time + total_minutes
     return new_time.strftime('%H:%M')
+
+
+class UserButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Larry",
+            custom_id="user_btn",
+            row=0,
+            disabled=False
+
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        self.view.user = (self.view.user + 1) % len(USERNAMES)
+        self.view.user_btn.label = USERNAMES[(self.view.user + 1) % len(USERNAMES)]
+        self.view.update_description()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        await interaction.response.defer()
 
 
 class RoomButton(discord.ui.Button):
@@ -215,6 +234,7 @@ class EnterButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         if self.view.correct_input():
+            self.view.finished = True
             for item in self.view.children:
                 item.disabled = True
             await interaction.message.edit(view=self.view)
@@ -247,6 +267,8 @@ class CancelButton(discord.ui.Button):
 
 class View(discord.ui.View):
     cancelled = False
+    finished = False
+    user = 0  # Index 0,1,2... in USERS
     room = 1  # 111/114
     day = 0  # 1-7 (today:1, tmr:2, ...)
     time_part = 1  # 1/2/3 (M/A/E)
@@ -254,6 +276,7 @@ class View(discord.ui.View):
     duration = 1  # 1/2/3/4 (0/5/1/1.5/2 hours)
     embed_text = discord.Embed(title="Auto piano booking", colour=0xFF0000, description="Room 111 Morning 7:00 ~ 7:30")
 
+    user_btn: UserButton = None
     room_btn: RoomButton = None
     morning_btn: MorningButton = None
     afternoon_btn: AfternoonButton = None
@@ -268,7 +291,9 @@ class View(discord.ui.View):
         super().__init__(timeout=MENU_TIMEOUT)
 
         self.cancelled = False
+        self.cancelled = False
 
+        self.user_btn = UserButton()
         self.room_btn = RoomButton()
         self.morning_btn = MorningButton()
         self.afternoon_btn = AfternoonButton()
@@ -279,6 +304,7 @@ class View(discord.ui.View):
         self.enter_btn = EnterButton()
         self.cancel_btn = CancelButton()
 
+        self.add_item(self.user_btn)
         self.add_item(self.room_btn)
         self.add_item(self.morning_btn)
         self.add_item(self.afternoon_btn)
@@ -294,7 +320,7 @@ class View(discord.ui.View):
         day_text = number_to_day(self.day + 1) if self.day != 0 else '???'
         time_slot_text = 'Morning' if self.time_part == 1 else 'Afternoon' if self.time_part == 2 else 'Evening'
         time_period_text = f"{number_to_time(self.time_slot)} ~ {number_to_time(self.time_slot + self.duration)}"
-        self.embed_text.description = f"{room_text} {day_text} {time_slot_text} {time_period_text}"
+        self.embed_text.description = f"{USERNAMES[self.user]}: {room_text} {day_text} {time_slot_text} {time_period_text}"
 
     def correct_input(self) -> bool:
         return self.day != 0 and self.time_part != 0 and self.time_slot != 0 and self.duration != 0
