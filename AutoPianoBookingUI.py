@@ -108,6 +108,28 @@ class RoomButton(discord.ui.Button):
         await interaction.response.defer()
 
 
+class SessionButton(discord.ui.Button):
+    sessions = ["Morning", "Afternoon", "Evening"]
+
+    def __init__(self):
+        super().__init__(
+            label="Afternoon",
+            custom_id="session_btn",
+            row=0,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        self.view.time_part = self.view.time_part % 3 + 1
+        self.view.time_slot_menu.options = timeslot_to_options(self.view.time_part)
+        self.view.time_slot = 0
+        self.view.duration = 0
+
+        self.label = self.sessions[self.view.time_part % 3]
+        self.view.update_description()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        await interaction.response.defer()
+
+
 class MorningButton(discord.ui.Button):
     def __init__(self):
         super().__init__(
@@ -288,9 +310,7 @@ class View(discord.ui.View):
 
     user_btn: UserButton = None
     room_btn: RoomButton = None
-    morning_btn: MorningButton = None
-    afternoon_btn: AfternoonButton = None
-    evening_btn: EveningButton = None
+    session_btn: SessionButton = None
     day_menu: DayMenu = None
     time_slot_menu: TimeSlotMenu = None
     duration_menu: DurationMenu = None
@@ -306,9 +326,7 @@ class View(discord.ui.View):
 
         self.user_btn = UserButton((self.user + 1) % len(USERNAMES))
         self.room_btn = RoomButton()
-        self.morning_btn = MorningButton()
-        self.afternoon_btn = AfternoonButton()
-        self.evening_btn = EveningButton()
+        self.session_btn = SessionButton()
         self.day_menu = DayMenu()
         self.time_slot_menu = TimeSlotMenu()
         self.duration_menu = DurationMenu()
@@ -317,9 +335,7 @@ class View(discord.ui.View):
 
         self.add_item(self.user_btn)
         self.add_item(self.room_btn)
-        self.add_item(self.morning_btn)
-        self.add_item(self.afternoon_btn)
-        self.add_item(self.evening_btn)
+        self.add_item(self.session_btn)
         self.add_item(self.day_menu)
         self.add_item(self.time_slot_menu)
         self.add_item(self.duration_menu)
