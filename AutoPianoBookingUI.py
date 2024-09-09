@@ -11,14 +11,16 @@ def discord_username_to_login_name(username: str) -> int:
             return USERNAMES.index("Jaga")
         case "usufio":
             return USERNAMES.index("Larry")
+        case "imposter4839":
+            return USERNAMES.index("Tom")
         case _:
             return 0
 
 
-def day_to_options() -> [discord.SelectOption]:
+def day_to_options(book_now: bool) -> [discord.SelectOption]:
     options = []
     for i in range(7):
-        day = datetime.today() + timedelta(days=i+1)
+        day = datetime.today() + timedelta(days=i if book_now else i+1)
         label = f"{day.strftime('%a')} ({day.strftime('%d/%m')})"
         options.append(discord.SelectOption(label=label, value=str(i+1)))
     return options
@@ -70,24 +72,6 @@ def number_to_time(num) -> str:
     return new_time.strftime('%H:%M')
 
 
-class ActionButton(discord.ui.Button):
-    actions = ["Book now", "Wait 00:00"]
-
-    def __init__(self, user_index):
-        super().__init__(
-            label=self.actions[1],
-            custom_id="action_btn",
-            row=0,
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        self.view.action = (self.view.action + 1) % 2
-        self.label = self.actions[(self.view.action + 1) % 2]
-        self.view.update_description()
-        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
-        await interaction.response.defer()
-
-
 class UserButton(discord.ui.Button):
     def __init__(self, user_index):
         super().__init__(
@@ -100,6 +84,31 @@ class UserButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         self.view.user = (self.view.user + 1) % len(USERNAMES)
         self.view.user_btn.label = USERNAMES[(self.view.user + 1) % len(USERNAMES)]
+        self.view.update_description()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        await interaction.response.defer()
+
+
+class ActionButton(discord.ui.Button):
+    actions = ["Book now", "Wait 00:00"]
+
+    def __init__(self, user_index):
+        super().__init__(
+            label=self.actions[1],
+            custom_id="action_btn",
+            row=0,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        self.view.action = (self.view.action + 1) % 2
+
+        if (self.view.action == 0 and self.view.day == 7) or (self.view.action == 1 and self.view.day == 1):
+            self.view.day = 0
+        else:
+            self.view.day = self.view.day + 1 if self.view.action == 0 else self.view.day - 1
+
+        self.label = self.actions[(self.view.action + 1) % 2]
+        self.view.day_menu.options = day_to_options(self.view.action == 0)
         self.view.update_description()
         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
@@ -220,8 +229,8 @@ class EveningButton(discord.ui.Button):
 
 
 class DayMenu(discord.ui.Select):
-    def __init__(self):
-        options = day_to_options()
+    def __init__(self, action: int):
+        options = day_to_options(action == 0)
         super().__init__(
             placeholder="Which day?",
             options=options,
@@ -326,8 +335,8 @@ class View(discord.ui.View):
     duration = 1  # 1/2/3/4 (0/5/1/1.5/2 hours)
     embed_text = discord.Embed(title="Auto piano booking", colour=0xFF0000)
 
-    action_btn: ActionButton = None
     user_btn: UserButton = None
+    action_btn: ActionButton = None
     room_btn: RoomButton = None
     session_btn: SessionButton = None
     day_menu: DayMenu = None
@@ -343,18 +352,18 @@ class View(discord.ui.View):
         self.finished = False
         self.user = discord_username_to_login_name(bot_caller)
 
-        self.action_btn = ActionButton(self.user)
         self.user_btn = UserButton((self.user + 1) % len(USERNAMES))
+        self.action_btn = ActionButton(self.user)
         self.room_btn = RoomButton()
         self.session_btn = SessionButton()
-        self.day_menu = DayMenu()
+        self.day_menu = DayMenu(self.action)
         self.time_slot_menu = TimeSlotMenu()
         self.duration_menu = DurationMenu()
         self.enter_btn = EnterButton()
         self.cancel_btn = CancelButton()
 
-        self.add_item(self.action_btn)
         self.add_item(self.user_btn)
+        self.add_item(self.action_btn)
         self.add_item(self.room_btn)
         self.add_item(self.session_btn)
         self.add_item(self.day_menu)
@@ -365,7 +374,7 @@ class View(discord.ui.View):
 
     def update_description(self) -> None:
         room_text = f"Room {'111' if self.room == 1 else '114'}"
-        day_text = number_to_day(self.day + 1) if self.day != 0 else '???'
+        day_text = number_to_day(self.day if self.action == 0 else self.day + 1) if self.day != 0 else "???"
         time_slot_text = 'Morning' if self.time_part == 1 else 'Afternoon' if self.time_part == 2 else 'Evening'
         time_period_text = f"{number_to_time(self.time_slot)} ~ {number_to_time(self.time_slot + self.duration)}"
         action_text = "Book now" if self.action == 0 else "Wait 00:00"
@@ -397,7 +406,7 @@ if __name__ == "__main__":
 
     @bot.command()
     async def t(ctx: commands.Context):
-        menu = View()
+        menu = View("usufio")
         menu.message = await ctx.send(view=menu)
         await menu.wait()
         room = menu.room

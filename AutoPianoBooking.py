@@ -82,7 +82,7 @@ async def piano_system(bot: commands.Bot, message):
 
     def execute_booking() -> bool:
         while 1:  # infinite loop for repeated booking
-            if time.ctime(time.time())[11:16] == '00:00':
+            if book_now or time.ctime(time.time())[11:16] == '00:00':
                 try:
                     driver.refresh()
                     for path in paths[4:]:
@@ -104,6 +104,7 @@ async def piano_system(bot: commands.Bot, message):
             await message.channel.send("**> Input closed. You take too long!**")
             return
 
+        book_now: bool = True if menu.action == 0 else False
         paths = set_path(menu.room, menu.day, menu.time_slot, menu.duration)
 
         # if HOSTER == "Mac":
