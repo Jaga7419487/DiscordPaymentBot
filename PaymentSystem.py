@@ -340,7 +340,7 @@ async def payment_system(bot: commands.Bot, message):
             undo_update = "> -# Updated records:\n"
             undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount))
             await message.channel.send("**Undo has been executed!**\n" + undo_update)
-            undo_log_content = f"{message.author}: undo **[**{log_content}**]**"
+            undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)
 

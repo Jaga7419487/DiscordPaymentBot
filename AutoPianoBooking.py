@@ -1,3 +1,5 @@
+import random
+
 from discord.ext import commands
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -88,9 +90,11 @@ async def piano_system(bot: commands.Bot, message):
                     for path in paths[4:]:
                         check_and_click(path)
                     return True
-                except Exception as err:
-                    # print(f"[AutoPianoBooking] execute_booking: {err}")
+                except RuntimeError as err:
+                    print(f"[AutoPianoBooking] execute_booking: {err}")
                     return False
+            # if random.random() > 0.98:
+            #     driver.refresh()
             continue
 
     try:
