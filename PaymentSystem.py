@@ -47,7 +47,7 @@ def read_last_log() -> list[str]:
 
 
 def payment_record() -> str:
-    zero = take_money = need_pay = centralized_person = ""
+    zero = take_money = need_pay = ""
     count = 0.0
 
     with open(PAYMENT_RECORD_FILE, 'r', encoding='utf8') as file:
@@ -276,7 +276,7 @@ async def payment_system(bot: commands.Bot, message):
 
         else:
             # Graphic UI
-            menu = PaymentSystemUI.View(payment_data)
+            menu = PaymentSystemUI.InputView(payment_data)
             menu.message = await message.send(view=menu)
             await menu.wait()
 

@@ -203,14 +203,33 @@ class UndoButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         self.view.undo = True
-        self.view.children[0].disabled = True
-        self.view.children[0].label = "Undo done"
+        self.label = "Undo done"
+        for item in self.view.children:
+            item.disabled = True
         await self.view.message.edit(view=self.view)
         await interaction.response.defer()
         self.view.stop()
 
 
-class View(discord.ui.View):
+class EditButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Edit",
+            custom_id="edit_btn",
+            style=discord.ButtonStyle.danger,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        self.view.edit = True
+        self.label = "Edit triggered"
+        for item in self.view.children:
+            item.disabled = True
+        await self.view.message.edit(view=self.view)
+        await interaction.response.defer()
+        self.view.stop()
+
+
+class InputView(discord.ui.View):
     cancelled = False
     finished = False
     owe = True
@@ -282,18 +301,26 @@ class View(discord.ui.View):
 
 
 class UndoView(discord.ui.View):
-    undo: bool = None
+    undo: bool = False
+    edit: bool = False
     undo_btn: UndoButton = None
+    edit_btn: EditButton = None
 
     def __init__(self):
         super().__init__(timeout=UNDO_TIMEOUT)
+
         self.undo = False
+        self.edit = False
         self.undo_btn = UndoButton()
+        self.edit_btn = EditButton()
         self.add_item(self.undo_btn)
+        self.add_item(self.edit_btn)
 
     async def on_timeout(self) -> None:
-        self.children[0].disabled = True
+        for item in self.children:
+            item.disabled = True
         await self.message.edit(view=self)
+        self.stop()
 
 
 if __name__ == "__main__":
