@@ -121,14 +121,16 @@ async def piano_system(bot: commands.Bot, message):
         check_and_click(paths[0], 300)  # login
         check_and_write(paths[1], USERS[menu.user]["username"], 300)  # username
         check_and_write(paths[2], USERS[menu.user]["password"], 300)  # password
-        await message.channel.send("### Please check your duo mobile!")
+        await message.channel.send("**Please check your duo mobile!**")
         check_and_click(paths[3], 300)  # duo mobile
 
-        await message.channel.send("### Start waiting for 00:00 to book the piano room!")
+        if book_now:
+            await message.channel.send("**Start waiting for 00:00 to book the piano room!**")
+
         if await run_blocking(execute_booking):
-            await message.channel.send(f"## ✔ Successfully booked [{menu.embed_text.description}]! ✔")
+            await message.channel.send(f"**✔ Successfully booked [{menu.embed_text.description}]!**")
         else:
-            await message.channel.send(f"## ❌ Failed to book [{menu.embed_text.description}]! ❌")
+            await message.channel.send(f"**❌ Failed to book [{menu.embed_text.description}]!**")
 
         driver.close()
     except Exception as e:
