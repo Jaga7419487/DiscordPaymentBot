@@ -232,10 +232,15 @@ def parse_optional_args(args: list[str]) -> tuple[bool, bool, [str]] or False:
 
 
 async def payment_system(bot: commands.Bot, message):
-    async def single_pm():
+    async def single_pm(prev: [str or bool] = None):
+        cmd_input = None
+        menu = None
         msg: list[str] = message.message.content.lower().split()
+
         if len(msg) >= 5:
             # Command line UI: e.g. !pm p1,p2 owe p3,p4 100 -CNY (reason)
+            cmd_input = True
+
             ppl_to_pay: str = msg[1].lower()
             for ppl in ppl_to_pay.split(','):
                 if ppl not in payment_data.keys().__str__().lower():
@@ -276,7 +281,10 @@ async def payment_system(bot: commands.Bot, message):
 
         else:
             # Graphic UI
-            menu = PaymentSystemUI.InputView(payment_data)
+            cmd_input = False
+
+            menu = PaymentSystemUI.InputView(payment_data, prev[0], prev[1], prev[2], prev[3], prev[4], prev[5], prev[6]) \
+                if prev else PaymentSystemUI.InputView(payment_data)
             menu.message = await message.send(view=menu)
             await menu.wait()
 
@@ -318,8 +326,6 @@ async def payment_system(bot: commands.Bot, message):
 
         # perform the payment operation
         update = payment_handling(ppl_to_pay, ppl_get_paid, float(amount))
-
-        # error occurred
         if not update:
             await message.channel.send("**ERROR: Payment handling failed**")
             return
@@ -327,7 +333,7 @@ async def payment_system(bot: commands.Bot, message):
         await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`"
                                    f"\n> -# Updated records:\n{update}")
 
-        undo_view = PaymentSystemUI.UndoView()
+        undo_view = PaymentSystemUI.UndoView(not cmd_input)
         undo_view.message = await message.send(view=undo_view)
 
         if handler:
@@ -336,10 +342,18 @@ async def payment_system(bot: commands.Bot, message):
         await undo_view.wait()
 
         # handle undo operation
-        if undo_view.undo:
+        if undo_view.undo and undo_view.edit:
             undo_update = "> -# Updated records:\n"
             undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount))
-            await message.channel.send("**Undo has been executed!**\n" + undo_update)
+            await message.channel.send("**Undo has been executed for editing!**\n")
+            undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
+            write_log(undo_log_content)
+            await log_channel.send(undo_log_content)
+            await single_pm([ppl_to_pay, operation_owe, ppl_get_paid, menu.amount_text, service_charge, currency, menu.reason])
+        elif undo_view.undo:
+            undo_update = "> -# Updated records:\n"
+            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount))
+            await message.channel.send("**Undo has been executed!**\n")
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)

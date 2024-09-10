@@ -19,9 +19,9 @@ def choices_to_text(choices: list):
 
 
 class OweButton(discord.ui.Button):
-    def __init__(self):
+    def __init__(self, owe: bool):
         super().__init__(
-            label="pay back",
+            label="pay back" if owe else "owe",
             custom_id="owe_btn",
             row=0,
             disabled=False
@@ -36,9 +36,9 @@ class OweButton(discord.ui.Button):
 
 
 class ServiceChargeButton(discord.ui.Button):
-    def __init__(self):
+    def __init__(self, service_charge: bool):
         super().__init__(
-            label="+10%",
+            label="✅" if service_charge else "+10%",
             custom_id="service_charge_btn",
             row=0,
             disabled=False
@@ -110,11 +110,14 @@ class AmountModal(discord.ui.Modal):
         required=False
     )
 
-    def __init__(self, amount: float):
+    def __init__(self, amount: float, reason: str):
         super().__init__(title="Amount")
         self.amount = amount
-        if amount != 0:
+        self.reason = reason
+        if amount:
             self.amount_textinput.default = f"{amount}"
+        if reason:
+            self.reason_textinput.default = reason[1:-1]
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -136,7 +139,7 @@ class ModalTrigger(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        self.view.amount_modal = AmountModal(float(self.view.amount_text))
+        self.view.amount_modal = AmountModal(float(self.view.amount_text), self.view.reason)
         await interaction.response.send_modal(self.view.amount_modal)
         await self.view.amount_modal.wait()
 
@@ -220,6 +223,7 @@ class EditButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        self.view.undo = True
         self.view.edit = True
         self.label = "Edit triggered"
         for item in self.view.children:
@@ -232,12 +236,14 @@ class EditButton(discord.ui.Button):
 class InputView(discord.ui.View):
     cancelled = False
     finished = False
-    owe = True
-    currency = UNIFIED_CURRENCY
-    service_charge = False
-    reason = ""
-    amount_text = "0"
+
     pay_text = paid_text = "???"
+    owe = True
+    amount_text = "0"
+    service_charge = False
+    currency = UNIFIED_CURRENCY
+    reason = ""
+
     embed_text = discord.Embed(title="Payment record", colour=0xC57CEE, description="??? owe ??? 0")
 
     owe_btn: OweButton = None
@@ -250,11 +256,20 @@ class InputView(discord.ui.View):
     enter_btn: EnterButton = None
     cancel_btn: CancelButton = None
 
-    def __init__(self, record: dict):
+    def __init__(self, record: dict, pay_text: str = "???", owe: bool = True, paid_text: str = "???", amount: str = "0",
+                 service_charge: bool = False, currency: str = UNIFIED_CURRENCY, reason: str = ""):
         super().__init__(timeout=MENU_TIMEOUT)
 
-        self.owe_btn = OweButton()
-        self.service_charge_btn = ServiceChargeButton()
+        self.pay_text = pay_text
+        self.owe = owe
+        self.paid_text = paid_text
+        self.amount_text = amount
+        self.service_charge = service_charge
+        self.currency = currency
+        self.reason = reason
+
+        self.owe_btn = OweButton(self.owe)
+        self.service_charge_btn = ServiceChargeButton(self.service_charge)
         self.currency_btn = CurrencyButton(switch_currency(self.currency))
         self.modal_trigger = ModalTrigger()
         self.enter_btn = EnterButton()
@@ -306,15 +321,17 @@ class UndoView(discord.ui.View):
     undo_btn: UndoButton = None
     edit_btn: EditButton = None
 
-    def __init__(self):
+    def __init__(self, show_edit_btn: bool):
         super().__init__(timeout=UNDO_TIMEOUT)
 
         self.undo = False
         self.edit = False
         self.undo_btn = UndoButton()
-        self.edit_btn = EditButton()
         self.add_item(self.undo_btn)
-        self.add_item(self.edit_btn)
+
+        if show_edit_btn:
+            self.edit_btn = EditButton()
+            self.add_item(self.edit_btn)
 
     async def on_timeout(self) -> None:
         for item in self.children:
