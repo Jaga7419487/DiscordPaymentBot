@@ -8,7 +8,6 @@ from botInfo import HOSTER
 
 import time
 
-
 LINK = "https://www.oanda.com/currency-converter/en/?from=CNY&to=USD&amount=12"
 
 # baseCur_ctry_path = "/html/body/div[1]/main/div[1]/div/div/div[3]/div/div[1]/div[1]/div/div[2]/div[1]/div[1]/div/div[2]/div/div/div[1]/div"

@@ -283,7 +283,8 @@ async def payment_system(bot: commands.Bot, message):
             # Graphic UI
             cmd_input = False
 
-            menu = PaymentSystemUI.InputView(payment_data, prev[0], prev[1], prev[2], prev[3], prev[4], prev[5], prev[6]) \
+            menu = PaymentSystemUI.InputView(payment_data, prev[0], prev[1], prev[2], prev[3], prev[4], prev[5],
+                                             prev[6]) \
                 if prev else PaymentSystemUI.InputView(payment_data)
             menu.message = await message.send(view=menu)
             await menu.wait()
@@ -349,7 +350,8 @@ async def payment_system(bot: commands.Bot, message):
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)
-            await single_pm([ppl_to_pay, operation_owe, ppl_get_paid, menu.amount_text, service_charge, currency, menu.reason])
+            await single_pm(
+                [ppl_to_pay, operation_owe, ppl_get_paid, menu.amount_text, service_charge, currency, menu.reason])
         elif undo_view.undo:
             undo_update = "> -# Updated records:\n"
             undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount))

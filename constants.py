@@ -49,5 +49,3 @@ BOT_DESCRIPTION = f"""
 
 -# Developed by __Jaga Chau__ 25-12-2023
 """
-
-

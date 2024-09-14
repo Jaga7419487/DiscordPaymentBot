@@ -301,7 +301,7 @@ class InputView(discord.ui.View):
         currency_text = f"[{self.currency}]" if self.currency != UNIFIED_CURRENCY else ""
         service_charge_text = ' [+10%]' if self.service_charge else ''
         self.embed_text.description = f"{self.pay_text} {operation} {self.paid_text} " \
-                                      f"{self.amount_text} {self.reason}{currency_text}{service_charge_text}"
+                                      f"{self.amount_text} {self.reason} {currency_text}{service_charge_text}"
 
     def correct_input(self) -> bool:
         return not (self.pay_text == "???" or self.paid_text == "???" or
@@ -353,13 +353,15 @@ if __name__ == "__main__":
     intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=intents)
 
+
     @bot.event
     async def on_ready():
         print(f"Current logged in user --> {bot.user}")
 
+
     @bot.command()
     async def test(ctx: commands.Context):
-        menu = View(payment_data)
+        menu = InputView(payment_data)
         # await ctx.send(f"{ctx.author}: {ctx.message.content}")
         menu.message = await ctx.send(view=menu)
         await menu.wait()
@@ -380,5 +382,6 @@ if __name__ == "__main__":
         undo.message = await ctx.send(view=undo)
         await undo.wait()
         await ctx.send(f"undo: {undo.undo}")
+
 
     bot.run(BOT_KEY)

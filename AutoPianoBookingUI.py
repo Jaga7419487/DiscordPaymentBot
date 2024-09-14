@@ -20,9 +20,9 @@ def discord_username_to_login_name(username: str) -> int:
 def day_to_options(book_now: bool) -> [discord.SelectOption]:
     options = []
     for i in range(7):
-        day = datetime.today() + timedelta(days=i if book_now else i+1)
+        day = datetime.today() + timedelta(days=i if book_now else i + 1)
         label = f"{day.strftime('%a')} ({day.strftime('%d/%m')})"
-        options.append(discord.SelectOption(label=label, value=str(i+1)))
+        options.append(discord.SelectOption(label=label, value=str(i + 1)))
     return options
 
 
@@ -50,11 +50,11 @@ def timeslot_to_options(session) -> [discord.SelectOption]:
 
 def duration_to_options(n=4) -> [discord.SelectOption]:
     options = [
-                discord.SelectOption(label="30 minutes", value="1"),
-                discord.SelectOption(label="1 hour", value="2"),
-                discord.SelectOption(label="1.5 hours", value="3"),
-                discord.SelectOption(label="2 hours", value="4")
-            ]
+        discord.SelectOption(label="30 minutes", value="1"),
+        discord.SelectOption(label="1 hour", value="2"),
+        discord.SelectOption(label="1.5 hours", value="3"),
+        discord.SelectOption(label="2 hours", value="4")
+    ]
     return options[:n]
 
 
@@ -67,7 +67,7 @@ def number_to_time(num) -> str:
     if num < 1 or num > 31:
         return "???"
     start_time = datetime.strptime('07:00', '%H:%M')
-    total_minutes = timedelta(minutes=(num-1)*30)
+    total_minutes = timedelta(minutes=(num - 1) * 30)
     new_time = start_time + total_minutes
     return new_time.strftime('%H:%M')
 
@@ -400,9 +400,11 @@ if __name__ == "__main__":
     intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=intents)
 
+
     @bot.event
     async def on_ready():
         print(f"Current logged in user --> {bot.user}")
+
 
     @bot.command()
     async def t(ctx: commands.Context):
@@ -416,5 +418,6 @@ if __name__ == "__main__":
 
         await ctx.send(f"Room:{room}; day:{day}; time_slot:{time_slot}; duration:{duration}")
         await ctx.send(menu.embed_text.description)
+
 
     bot.run(BOT_KEY)

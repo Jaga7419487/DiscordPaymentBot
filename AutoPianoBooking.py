@@ -11,7 +11,6 @@ import AutoPianoBookingUI
 import functools
 import time
 
-
 link = 'https://w5.ab.ust.hk/wrm/app/login?path=/bookings/add/music-room/timetable'  # link to be opened
 
 
@@ -80,7 +79,7 @@ async def piano_system(bot: commands.Bot, message):
         input_field = driver.find_element('xpath', xpath)  # locate the corresponding button
         if not input_field.is_enabled():
             raise RuntimeError("Target button is not enabled")
-        input_field.send_keys(text+Keys.ENTER)
+        input_field.send_keys(text + Keys.ENTER)
 
     def execute_booking() -> bool:
         while 1:  # infinite loop for repeated booking
