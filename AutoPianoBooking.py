@@ -90,7 +90,8 @@ async def piano_system(bot: commands.Bot, message):
                         check_and_click(path)
                     return True
                 except RuntimeError as err:
-                    print(f"[AutoPianoBooking] execute_booking: {err}")
+                    if execute_booking():
+                        return True
                     return False
             # if random.random() > 0.98:
             #     driver.refresh()
@@ -127,7 +128,7 @@ async def piano_system(bot: commands.Bot, message):
         await message.channel.send("**Please check your duo mobile!**")
         check_and_click(paths[3], 300)  # duo mobile
 
-        if book_now:
+        if not book_now:
             await message.channel.send("**Start waiting for 00:00 to book the piano room!**")
 
         if await run_blocking(execute_booking):
