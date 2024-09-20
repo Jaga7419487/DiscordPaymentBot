@@ -360,12 +360,13 @@ class View(discord.ui.View):
         self.add_item(self.cancel_btn)
 
     def update_description(self) -> None:
-        room_text = f"Room {'111' if self.room == 1 else '114'}"
+        room_text = f"Rm{'111' if self.room == 1 else '114'}"
         day_text = number_to_day(self.day if self.action == 0 else self.day + 1) if self.day != 0 else "???"
-        time_slot_text = 'Morning' if self.time_part == 1 else 'Afternoon' if self.time_part == 2 else 'Evening'
+        day = datetime.today() + timedelta(days=self.day-1)
+        date_text = day.strftime('%d/%m') if self.day != 0 else ""
         time_period_text = f"{number_to_time(self.time_slot)} ~ {number_to_time(self.time_slot + self.duration)}"
         action_text = "Book now" if self.action == 0 else "Wait 00:00"
-        self.embed_text.description = f"{USERNAMES[self.user]}: {room_text} {day_text} {time_slot_text}" \
+        self.embed_text.description = f"{USERNAMES[self.user]}: {room_text} __{date_text} {day_text}__" \
                                       f" {time_period_text} [{action_text}]"
 
     def correct_input(self) -> bool:
