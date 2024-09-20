@@ -1,10 +1,10 @@
-from discord.ext import commands
 import discord
+from discord.ext import commands
 
+from AutoPianoBooking import piano_system
+from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
 from botInfo import BOT_KEY, PAYMENT_CHANNEL_ID
 from constants import BOT_STATUS, BOT_DESCRIPTION, LOG_SHOW_NUMBER
-from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
-from AutoPianoBooking import piano_system
 
 
 def run():

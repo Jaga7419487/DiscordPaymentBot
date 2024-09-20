@@ -1,8 +1,9 @@
+from datetime import datetime, timedelta
+
 import discord
 
-from datetime import datetime, timedelta
-from constants import MENU_TIMEOUT
 from botInfo import USERNAMES
+from constants import MENU_TIMEOUT
 
 
 def discord_username_to_login_name(username: str) -> int:

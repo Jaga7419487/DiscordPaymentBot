@@ -1,15 +1,14 @@
-import random
-
-from discord.ext import commands
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.keys import Keys
-from selenium import webdriver
-from botInfo import HOSTER, USERS
-
-import AutoPianoBookingUI
 import functools
 import time
+
+from discord.ext import commands
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
+import AutoPianoBookingUI
+from botInfo import USERS
 
 link = 'https://w5.ab.ust.hk/wrm/app/login?path=/bookings/add/music-room/timetable'  # link to be opened
 
