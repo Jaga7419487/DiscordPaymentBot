@@ -97,9 +97,6 @@ class SelectPersonGetPaid(discord.ui.Select):
 
 
 class AmountModal(discord.ui.Modal):
-    amount = 0
-    reason = ""
-
     amount_textinput = discord.ui.TextInput(
         label="Enter the amount",
         placeholder="Type the amount here...",
@@ -234,31 +231,12 @@ class EditButton(discord.ui.Button):
 
 
 class InputView(discord.ui.View):
-    cancelled = False
-    finished = False
-
-    pay_text = paid_text = "???"
-    owe = True
-    amount_text = "0"
-    service_charge = False
-    currency = UNIFIED_CURRENCY
-    reason = ""
-
-    embed_text = discord.Embed(title="Payment record", colour=0xC57CEE, description="??? owe ??? 0")
-
-    owe_btn: OweButton = None
-    service_charge_btn: ServiceChargeButton = None
-    currency_btn: CurrencyButton = None
-    ppl_to_pay_menu: SelectPplToPay = None
-    person_get_paid_menu: SelectPersonGetPaid = None
-    amount_modal: AmountModal = None
-    modal_trigger: ModalTrigger = None
-    enter_btn: EnterButton = None
-    cancel_btn: CancelButton = None
-
     def __init__(self, record: dict, pay_text: str = "???", owe: bool = True, paid_text: str = "???", amount: str = "0",
                  service_charge: bool = False, currency: str = UNIFIED_CURRENCY, reason: str = ""):
         super().__init__(timeout=MENU_TIMEOUT)
+
+        self.cancelled = False
+        self.finished = False
 
         self.pay_text = pay_text
         self.owe = owe
@@ -267,6 +245,8 @@ class InputView(discord.ui.View):
         self.service_charge = service_charge
         self.currency = currency
         self.reason = reason
+
+        self.embed_text = discord.Embed(title="Payment record", colour=0xC57CEE, description="??? owe ??? 0")
 
         self.owe_btn = OweButton(self.owe)
         self.service_charge_btn = ServiceChargeButton(self.service_charge)
@@ -316,11 +296,6 @@ class InputView(discord.ui.View):
 
 
 class UndoView(discord.ui.View):
-    undo: bool = False
-    edit: bool = False
-    undo_btn: UndoButton = None
-    edit_btn: EditButton = None
-
     def __init__(self, show_edit_btn: bool):
         super().__init__(timeout=UNDO_TIMEOUT)
 

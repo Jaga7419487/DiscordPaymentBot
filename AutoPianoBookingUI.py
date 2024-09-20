@@ -324,33 +324,19 @@ class CancelButton(discord.ui.Button):
 
 
 class View(discord.ui.View):
-    cancelled = False
-    finished = False
-    action = 0  # 0: Book now, 1: Wait 00:00
-    user = 0  # Index 0,1,2... in USERS
-    room = 1  # 111/114
-    day = 0  # 1-7 (today:1, tmr:2, ...)
-    time_part = 1  # 1/2/3 (M/A/E)
-    time_slot = 1  # 1-30: 10+12+8 (M/A/E: 07/12/18)
-    duration = 1  # 1/2/3/4 (0/5/1/1.5/2 hours)
-    embed_text = discord.Embed(title="Auto piano booking", colour=0xFF0000)
-
-    user_btn: UserButton = None
-    action_btn: ActionButton = None
-    room_btn: RoomButton = None
-    session_btn: SessionButton = None
-    day_menu: DayMenu = None
-    time_slot_menu: TimeSlotMenu = None
-    duration_menu: DurationMenu = None
-    enter_btn: EnterButton = None
-    cancel_btn: CancelButton = None
-
     def __init__(self, bot_caller: str):
         super().__init__(timeout=MENU_TIMEOUT)
 
         self.cancelled = False
         self.finished = False
-        self.user = discord_username_to_login_name(bot_caller)
+        self.action = 0  # 0: Book now, 1: Wait 00:00
+        self.user = discord_username_to_login_name(bot_caller)  # Index 0,1,2... in USERS
+        self.room = 1  # 111/114
+        self.day = 0  # 1-7 (today:1, tmr:2, ...)
+        self.time_part = 1  # 1/2/3 (M/A/E)
+        self.time_slot = 1  # 1-30: 10+12+8 (M/A/E: 07/12/18)
+        self.duration = 1  # 1/2/3/4 (0/5/1/1.5/2 hours)
+        self.embed_text = discord.Embed(title="Auto piano booking", colour=0xFF0000)
 
         self.user_btn = UserButton((self.user + 1) % len(USERNAMES))
         self.action_btn = ActionButton(self.user)
