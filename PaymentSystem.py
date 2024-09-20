@@ -197,7 +197,7 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
 
 
 def do_backup() -> None:
-    with open(BACKUP_FILE, 'a', encoding='utf8') as bkup_file:
+    with open(BACKUP_FILE, 'w', encoding='utf8') as bkup_file:
         bkup_file.write('[' + time.strftime('%Y-%m-%d %H:%M') + "]\n")
         with open(PAYMENT_RECORD_FILE, 'r', encoding='utf8') as pm_file:
             for line in pm_file:
