@@ -87,7 +87,7 @@ async def piano_system(bot: commands.Bot, message):
                     driver.refresh()
                     for path in paths[4:]:
                         check_and_click(path)
-                    return True
+                    return True  # add condition for successful booking
                 except RuntimeError as err:
                     if execute_booking():
                         return True

@@ -310,8 +310,10 @@ async def payment_system(bot: commands.Bot, message):
         if currency != UNIFIED_CURRENCY and currency in SUPPORTED_CURRENCY:
             handler = ExchangeRateHandler()
             amount = handler(currency, amount).split('.')
-            amount = amount[0] + '.' + amount[1][:ROUND_OFF_DP]
+            # amount = amount[0] + '.' + amount[1][:ROUND_OFF_DP]
+            amount = amount[0] + '.' + amount[1]
             amount = "".join(amount.split(','))
+            amount = round(float(amount), ROUND_OFF_DP)
 
         # log the record
         log_content = f"{message.author}: {ppl_to_pay} " \

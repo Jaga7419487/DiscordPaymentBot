@@ -5,5 +5,7 @@ venv/
 
 botInfo.py
 log.txt
-payment_record.txt
 test_bot.py
+
+payment_record.txt
+latest_currency.txt

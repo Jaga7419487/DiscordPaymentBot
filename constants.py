@@ -1,7 +1,7 @@
 COMMAND = "pm"
 BOT_STATUS = "->> !info"
 UNIFIED_CURRENCY = "HKD"
-SUPPORTED_CURRENCY = ['HKD', 'CNY', "GBP"]
+SUPPORTED_CURRENCY = ['HKD', 'CNY', "JPY", "GBP"]
 
 ROUND_OFF_DP = 3
 LOG_SHOW_NUMBER = 10
@@ -12,6 +12,7 @@ UNDO_TIMEOUT = 3600.0
 PAYMENT_RECORD_FILE = "payment_record.txt"
 LOG_FILE = "log.txt"
 BACKUP_FILE = "backup_record.txt"
+CURRENCY_FILE = "latest_currency.txt"
 
 BOT_DESCRIPTION = f"""
 # Discord Payment Bot
