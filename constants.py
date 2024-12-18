@@ -35,7 +35,6 @@ BOT_DESCRIPTION = f"""
 `!logall`: Shows the {DEFAULT_LOG_SHOW_NUMBER} latest payment record inputs
 `!backup`: Backups the current payment record in a separate file
 `!showbackup`: Shows the backup records
-`!piano`: Book piano room for specific date & time at 00:00
 **`!pm`: Enters a payment record (UI window if only `!pm` sent)**
 > __Syntax:__
 > `!pm [payee] [operation] [get paid] [amount] [-CUR] [sc] [reason]`
@@ -50,3 +49,5 @@ BOT_DESCRIPTION = f"""
 
 -# Developed by __Jaga Chau__ 25-12-2023
 """
+
+# `!piano`: Book piano room for specific date & time at 00:00

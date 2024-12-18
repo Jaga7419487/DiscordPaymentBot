@@ -363,10 +363,6 @@ async def payment_system(bot: commands.Bot, message):
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)
 
-    if message.channel.id != PAYMENT_CHANNEL_ID:
-        await message.channel.send("Please input the record in the **payment** channel")
-        return
-
     log_channel = bot.get_channel(LOG_CHANNEL_ID)
     payment_data = payment_record_to_dict()
     # for each_pm in message.message.content.split('\n'):
