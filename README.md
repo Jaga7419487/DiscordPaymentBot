@@ -1,62 +1,33 @@
-# Discord-Payment-Bot
+# Discord Payment Bot
+## Purpose: Store payment records among a group of people
+**Workflow:**
+1. **Scenario:** When __Person A__ help __Person B__ with a payment, __Person B__ is expected to pay back __Person A__ later
+2. **Centralized System:** A single individual serves as the central point for transactions, ensuring smooth exchanges between other users (like a bank)
+3. **Repayment Chain:** 
+  - __Person A__ helps __Person B__ → __Person B__ owes __Person A__
+  - __Person B__ owes __Centralized Person__ → __Centralized Person__ owes __Person A__
+**Bot Functionality:**
+- **Interaction:** Users can call the bot with '!' prefix (e.g. `!info`)
+- **Response:** The bot is expected to response all valid calls with corresponding messages.
+## List of commands
+`!info`: The message you are reading now  
+`!list`: List out all payment records stored in the bot  
+`!create [name]`: Creates a new user with a name (e.g. `!create personA`)  
+`!delete [name]`: Deletes a user if he has no debts (e.g. `!delete personA`)  
+`!log`: Shows the 10 latest payment record inputs  
+`!logall`: Shows the 40 latest payment record inputs  
+`!backup`: Backups the current payment record in a separate file  
+`!showbackup`: Shows the backup records  
+**`!pm`: Enters a payment record (UI window if only `!pm` sent)**  
+> __Syntax:__  
+> `!pm [payee] [operation] [get paid] [amount] [-CUR] [sc] [reason]`  
+> `payee`: People that should pay back the money later, separated by ',' without space  
+> `operation`: `owe`/`payback`  
+> `get paid`: Person that should be paid back later  
+> `amount`: Up to 3 decimal point  
+> `-CUR`: Optional: `HKD/CNY/GBP` (default `HKD`)  
+> `sc`: Optional: include 10% service charge  
+> `reason`: Optional  
+> Example: `!pm personA,personB owe personC 100 -CNY sc (example)`  
 
-### discord bot control:
-https://discord.com/developers/applications/1187756421807353867/bot
-
-### discord text formatting:
-https://www.writebots.com/discord-text-formatting/
-https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-#h_01GY0EQVRRRB2F19HXC2BA30FG
-
-### discord.py documentation:
-https://discordpy.readthedocs.io/en/stable/index.html
-
-### discord-ui documentation:
-https://discord-ui.readthedocs.io/en/latest/usage.html
-
-### discord bot introduction:
-https://hackmd.io/@smallshawn95/python_discord_bot_base
-https://hackmd.io/@smallshawn95/python_discord_bot_event?utm_source=preview-mode&utm_medium=rec
-
-### Quick install packages: 
-> pip install -r requirements.txt
-
-- ctrl shift +/- -> expand/fold everything
-- ctrl D -> dulplicate current line
-
-```
-if str(client.user.id) in message.content:
-     await message.channel.send('You mentioned me!')
-```
-
-
-
-Test conditions:
-```
-pm jaga owe ppl1 100
-=> jaga needs to pay ppl1: 100.0
-
-pm ppl1 owe jaga 100
-=> ppl1 needs to pay jaga: 100.0
-
-pm ppl1 owe ppl2 100
-=> ppl1 needs to pay jaga: 100.0
-=> jaga needs to pay ppl2: 100.0
-
-pm jaga,ppl1 owe ppl2 100
-=> jaga needs to pay ppl2: 100.0
-=>
-=> ppl1 needs to pay jaga: 100.0
-=> jaga needs to pay ppl2: 100.0 -> 200.0
-
-pm ppl1,ppl2 owe jaga 100
-=> ppl1 needs to pay jaga: 100.0
-=>
-=> ppl2 needs to pay jaga: 100.0
-
-pm ppl1,ppl2 owe ppl3 100
-=> ppl1 needs to pay jaga: 100.0
-=> jaga needs to pay ppl3: 100.0
-=>
-=> ppl2 needs to pay jaga: 100.0
-=> jaga needs to pay ppl3: 100.0 -> 200.0
-```
+Developed by Jaga Chau 25-12-2023
