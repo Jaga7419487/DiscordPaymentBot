@@ -1,15 +1,17 @@
-import time
-
-from discord.ext import commands
-
-import PaymentSystemUI
 from ExchangeRateHandler import ExchangeRateHandler
-from botInfo import *
+from dotenv import load_dotenv
+from discord.ext import commands
 from constants import *
+
+import os
+import time
+import PaymentSystemUI
+
+load_dotenv()
 
 
 def payment_record_to_dict() -> dict:
-    payment_data = {CENTRALIZED_PERSON: -1}
+    payment_data = {os.getenv('CENTRALIZED_PERSON'): -1}
     with open(PAYMENT_RECORD_FILE, 'r', encoding='utf8') as file:
         for line in file:
             record = line.split()
@@ -58,11 +60,11 @@ def payment_record() -> str:
             if float(record[1]) == 0:
                 zero += f"**{record[0]}** don\'t need to pay\n"
             elif float(record[1]) > 0:
-                take_money += f"**{CENTRALIZED_PERSON}** needs to pay **{record[0]}** _${record[1]}_\n"
+                take_money += f"**{os.getenv('CENTRALIZED_PERSON')}** needs to pay **{record[0]}** _${record[1]}_\n"
             else:
-                need_pay += f"**{record[0]}** needs to pay **{CENTRALIZED_PERSON}** _${record[1][1:]}_\n"
+                need_pay += f"**{record[0]}** needs to pay **{os.getenv('CENTRALIZED_PERSON')}** _${record[1][1:]}_\n"
 
-        centralized_person = f"**{CENTRALIZED_PERSON}** "
+        centralized_person = f"**{os.getenv('CENTRALIZED_PERSON')}** "
         centralized_person += "doesn't need to pay" if count == 0 else \
             f"{'needs to pay' if count > 0 else 'will receive'} ${abs(round(count, 3))} in total"
 
@@ -108,10 +110,10 @@ def delete_ppl(target: str) -> bool:
 def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: float) -> str:
     if person_to_pay == person_get_paid:
         return ""
-    if person_to_pay == CENTRALIZED_PERSON:
+    if person_to_pay == os.getenv('CENTRALIZED_PERSON'):
         target = person_get_paid
         add = True
-    elif person_get_paid == CENTRALIZED_PERSON:
+    elif person_get_paid == os.getenv('CENTRALIZED_PERSON'):
         target = person_to_pay
         add = False
     else:
@@ -144,29 +146,29 @@ def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: fl
 
     # readability pro max!!!
     if p and c0:
-        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ {target} doesn't need to pay\n"
+        return f"> -# {os.getenv('CENTRALIZED_PERSON')} needs to pay {target} ${original} -→ {target} doesn't need to pay\n"
     elif not p and c0:
-        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ {target} doesn't need to pay\n"
+        return f"> -# {target} needs to pay {os.getenv('CENTRALIZED_PERSON')} ${original} -→ {target} doesn't need to pay\n"
     elif p0 and c:
-        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${current} (new record)\n"
+        return f"> -# {os.getenv('CENTRALIZED_PERSON')} needs to pay {target} ${current} (new record)\n"
     elif p0 and not c:
-        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${current} (new record)\n"
+        return f"> -# {target} needs to pay {os.getenv('CENTRALIZED_PERSON')} ${current} (new record)\n"
     elif p and c:
-        return f"> -# {CENTRALIZED_PERSON} needs to pay {target}: ${original} -→ ${current}\n"
+        return f"> -# {os.getenv('CENTRALIZED_PERSON')} needs to pay {target}: ${original} -→ ${current}\n"
     elif not p and c:
-        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ " \
-               f"{CENTRALIZED_PERSON} needs to pay {target} ${current}\n"
+        return f"> -# {target} needs to pay {os.getenv('CENTRALIZED_PERSON')} ${original} -→ " \
+               f"{os.getenv('CENTRALIZED_PERSON')} needs to pay {target} ${current}\n"
     elif p and not c:
-        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ " \
-               f"{target} needs to pay {CENTRALIZED_PERSON} ${current}\n"
+        return f"> -# {os.getenv('CENTRALIZED_PERSON')} needs to pay {target} ${original} -→ " \
+               f"{target} needs to pay {os.getenv('CENTRALIZED_PERSON')} ${current}\n"
     else:
-        return f"> -# {target} needs to pay {CENTRALIZED_PERSON}: ${original} -→ ${current}\n"
+        return f"> -# {target} needs to pay {os.getenv('CENTRALIZED_PERSON')}: ${original} -→ ${current}\n"
 
 
 def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
     update = ""
     payment_data = payment_record_to_dict()
-    del payment_data[CENTRALIZED_PERSON]
+    del payment_data[os.getenv('CENTRALIZED_PERSON')]
 
     # main logic
     try:
@@ -174,13 +176,13 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
         paid_list = ppl_get_paid.split(',')
         for each_to_pay in pay_list:
             for each_get_paid in paid_list:
-                if each_get_paid == CENTRALIZED_PERSON:
-                    update += owe(payment_data, each_to_pay, CENTRALIZED_PERSON, amount)
-                elif each_to_pay == CENTRALIZED_PERSON:
-                    update += owe(payment_data, CENTRALIZED_PERSON, each_get_paid, amount)
+                if each_get_paid == os.getenv('CENTRALIZED_PERSON'):
+                    update += owe(payment_data, each_to_pay, os.getenv('CENTRALIZED_PERSON'), amount)
+                elif each_to_pay == os.getenv('CENTRALIZED_PERSON'):
+                    update += owe(payment_data, os.getenv('CENTRALIZED_PERSON'), each_get_paid, amount)
                 else:
-                    update += owe(payment_data, each_to_pay, CENTRALIZED_PERSON, amount) + \
-                              owe(payment_data, CENTRALIZED_PERSON, each_get_paid, amount)
+                    update += owe(payment_data, each_to_pay, os.getenv('CENTRALIZED_PERSON'), amount) + \
+                              owe(payment_data, os.getenv('CENTRALIZED_PERSON'), each_get_paid, amount)
                 update += "> \n" if len(paid_list) > 1 else ""
             update += "> \n" if len(pay_list) > 1 else ""
         if ">" in update[-3:]:
@@ -363,7 +365,7 @@ async def payment_system(bot: commands.Bot, message):
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)
 
-    log_channel = bot.get_channel(LOG_CHANNEL_ID)
+    log_channel = bot.get_channel(int(os.getenv('LOG_CHANNEL_ID')))
     payment_data = payment_record_to_dict()
     # for each_pm in message.message.content.split('\n'):
     #     if each_pm:

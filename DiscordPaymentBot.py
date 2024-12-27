@@ -1,20 +1,24 @@
-import discord
-from discord.ext import commands
-
-from AutoPianoBooking import piano_system
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
-from botInfo import BOT_KEY, PAYMENT_CHANNEL_ID
 from constants import BOT_STATUS, BOT_DESCRIPTION, LOG_SHOW_NUMBER, DEFAULT_LOG_SHOW_NUMBER
+from AutoPianoBooking import piano_system
+from discord.ext import commands
+from dotenv import load_dotenv
+
+import os
+import discord
+
+load_dotenv()
 
 
 def run():
     intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=intents)
+    pm_channel_id = int(os.getenv('PAYMENT_CHANNEL_ID'))
 
     @bot.event
     async def on_ready():
         print(f"Current logged in user --> {bot.user}")
-        pm_channel = bot.get_channel(PAYMENT_CHANNEL_ID)
+        pm_channel = bot.get_channel(pm_channel_id)
         await pm_channel.send(f"## I am back!\n**Here is the payment record list:**\n{payment_record()}")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
 
@@ -47,7 +51,7 @@ def run():
 
     @bot.command(help="Create a new user with a name", brief="Create a new user")
     async def create(message: commands.Context):
-        if message.channel.id != PAYMENT_CHANNEL_ID:
+        if message.channel.id != pm_channel_id:
             await message.channel.send("Please create in the **payment** channel")
             return
         if create_ppl(message.message.content.split()[1]):
@@ -57,7 +61,7 @@ def run():
 
     @bot.command(help="Delete a user if he has no debts", brief="Delete a user")
     async def delete(message: commands.Context):
-        if message.channel.id != PAYMENT_CHANNEL_ID:
+        if message.channel.id != pm_channel_id:
             await message.channel.send("Please delete in the **payment** channel")
             return
 
@@ -69,7 +73,7 @@ def run():
 
     @bot.command(help="Enters a payment record", brief="Enters a payment record")
     async def pm(message: commands.Context):
-        if message.channel.id != PAYMENT_CHANNEL_ID:
+        if message.channel.id != pm_channel_id:
             await message.channel.send("Please input the record in the **payment** channel")
             return
         await payment_system(bot, message)
@@ -78,7 +82,7 @@ def run():
     async def piano(message: commands.Context):
         await piano_system(bot, message)
 
-    bot.run(BOT_KEY)
+    bot.run(os.getenv('BOT_KEY'))
 
 
 if __name__ == '__main__':
