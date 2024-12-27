@@ -3,7 +3,7 @@ __pycache__/
 .vscode/
 venv/
 
-botInfo.py
+botInfo_old.py
 log.txt
 test_bot.py
 

@@ -8,7 +8,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 import AutoPianoBookingUI
-from botInfo import USERS
 
 link = 'https://w5.ab.ust.hk/wrm/app/login?path=/bookings/add/music-room/timetable'  # link to be opened
 
@@ -122,8 +121,8 @@ async def piano_system(bot: commands.Bot, message):
         driver.get(link)
 
         check_and_click(paths[0], 300)  # login
-        check_and_write(paths[1], USERS[menu.user]["username"], 300)  # username
-        check_and_write(paths[2], USERS[menu.user]["password"], 300)  # password
+        # check_and_write(paths[1], USERS[menu.user]["username"], 300)  # username
+        # check_and_write(paths[2], USERS[menu.user]["password"], 300)  # password
         await message.channel.send("**Please check your duo mobile!**")
         check_and_click(paths[3], 300)  # duo mobile
 

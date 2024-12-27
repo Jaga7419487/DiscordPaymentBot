@@ -2,20 +2,20 @@ from datetime import datetime, timedelta
 
 import discord
 
-from botInfo import USERNAMES
 from constants import MENU_TIMEOUT
 
 
 def discord_username_to_login_name(username: str) -> int:
-    match username:
-        case "stickmanjc":
-            return USERNAMES.index("Jaga")
-        case "usufio":
-            return USERNAMES.index("Larry")
-        case "imposter4839":
-            return USERNAMES.index("Tom")
-        case _:
-            return 0
+    # match username:
+    #     case "stickmanjc":
+    #         return USERNAMES.index("Jaga")
+    #     case "usufio":
+    #         return USERNAMES.index("Larry")
+    #     case "imposter4839":
+    #         return USERNAMES.index("Tom")
+    #     case _:
+    #         return 0
+    ...
 
 
 def day_to_options(book_now: bool) -> [discord.SelectOption]:
@@ -76,18 +76,19 @@ def number_to_time(num) -> str:
 class UserButton(discord.ui.Button):
     def __init__(self, user_index):
         super().__init__(
-            label=USERNAMES[user_index],
-            custom_id="user_btn",
-            row=0,
-            disabled=False
+            # label=USERNAMES[user_index],
+            # custom_id="user_btn",
+            # row=0,
+            # disabled=False
         )
 
     async def callback(self, interaction: discord.Interaction):
-        self.view.user = (self.view.user + 1) % len(USERNAMES)
-        self.view.user_btn.label = USERNAMES[(self.view.user + 1) % len(USERNAMES)]
-        self.view.update_description()
-        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
-        await interaction.response.defer()
+        # self.view.user = (self.view.user + 1) % len(USERNAMES)
+        # self.view.user_btn.label = USERNAMES[(self.view.user + 1) % len(USERNAMES)]
+        # self.view.update_description()
+        # await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+        # await interaction.response.defer()
+        ...
 
 
 class ActionButton(discord.ui.Button):
@@ -339,7 +340,7 @@ class View(discord.ui.View):
         self.duration = 1  # 1/2/3/4 (0/5/1/1.5/2 hours)
         self.embed_text = discord.Embed(title="Auto piano booking", colour=0xFF0000)
 
-        self.user_btn = UserButton((self.user + 1) % len(USERNAMES))
+        # self.user_btn = UserButton((self.user + 1) % len(USERNAMES))
         self.action_btn = ActionButton(self.user)
         self.room_btn = RoomButton()
         self.session_btn = SessionButton()
@@ -349,7 +350,7 @@ class View(discord.ui.View):
         self.enter_btn = EnterButton()
         self.cancel_btn = CancelButton()
 
-        self.add_item(self.user_btn)
+        # self.add_item(self.user_btn)
         self.add_item(self.action_btn)
         self.add_item(self.room_btn)
         self.add_item(self.session_btn)
@@ -366,8 +367,8 @@ class View(discord.ui.View):
         date_text = day.strftime('%d/%m') if self.day != 0 else ""
         time_period_text = f"{number_to_time(self.time_slot)} ~ {number_to_time(self.time_slot + self.duration)}"
         action_text = "Book now" if self.action == 0 else "Wait 00:00"
-        self.embed_text.description = f"{USERNAMES[self.user]}: {room_text} __{date_text} {day_text}__" \
-                                      f" {time_period_text} [{action_text}]"
+        # self.embed_text.description = f"{USERNAMES[self.user]}: {room_text} __{date_text} {day_text}__" \
+        #                               f" {time_period_text} [{action_text}]"
 
     def correct_input(self) -> bool:
         return self.day != 0 and self.time_part != 0 and self.time_slot != 0 and self.duration != 0
