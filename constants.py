@@ -9,7 +9,7 @@ DEFAULT_LOG_SHOW_NUMBER = 40
 MENU_TIMEOUT = 3600.0
 UNDO_TIMEOUT = 3600.0
 
-PAYMENT_RECORD_FILE = "payment_record.txt"
+# PAYMENT_RECORD_FILE = "payment_record.txt"  # Deprecated
 LOG_FILE = "log.txt"
 BACKUP_FILE = "backup_record.txt"
 CURRENCY_FILE = "latest_currency.txt"

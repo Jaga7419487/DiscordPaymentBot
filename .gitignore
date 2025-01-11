@@ -3,12 +3,15 @@ __pycache__/
 .vscode/
 venv/
 
-botInfo_old.py
-log.txt
-test_bot.py
+.env
+*.json
 
+botInfo_old.py
+test_bot.py
+gsheet_test.py
+
+log.txt
 payment_record.txt
 latest_currency.txt
 
 old_readme.md
-.env
