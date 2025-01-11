@@ -1,22 +1,25 @@
-from ExchangeRateHandler import ExchangeRateHandler
-from dotenv import load_dotenv
-from discord.ext import commands
-from constants import *
-
 import os
 import time
+
+import pandas as pd
+import pygsheets
+from discord.ext import commands
+from dotenv import load_dotenv
+
 import PaymentSystemUI
+from ExchangeRateHandler import ExchangeRateHandler
+from constants import *
 
 load_dotenv()
 
 
-def payment_record_to_dict() -> dict:
-    payment_data = {os.getenv('CENTRALIZED_PERSON'): -1}
-    with open(PAYMENT_RECORD_FILE, 'r', encoding='utf8') as file:
-        for line in file:
-            record = line.split()
-            payment_data[record[0].lower()] = float(record[1])
-    return payment_data
+def payment_record_to_dict(wks: pygsheets.Worksheet) -> dict:
+    return wks.get_as_df().set_index('Name')['Amount'].to_dict()
+
+
+def write_payment_record(wks: pygsheets.Worksheet, record: dict) -> None:
+    df = pd.DataFrame(list(record.items()), columns=['Name', 'Amount'])
+    wks.set_dataframe(df, 'A1')
 
 
 def write_log(message: str) -> None:
@@ -49,62 +52,52 @@ def read_last_log() -> list[str]:
     return content.split()
 
 
-def payment_record() -> str:
+def payment_record(wks: pygsheets.Worksheet) -> str:
     zero = take_money = need_pay = ""
     count = 0.0
 
-    with open(PAYMENT_RECORD_FILE, 'r', encoding='utf8') as file:
-        for line in file:
-            record = line.split()
-            count += float(record[1])
-            if float(record[1]) == 0:
-                zero += f"**{record[0]}** don\'t need to pay\n"
-            elif float(record[1]) > 0:
-                take_money += f"**{os.getenv('CENTRALIZED_PERSON')}** needs to pay **{record[0]}** _${record[1]}_\n"
-            else:
-                need_pay += f"**{record[0]}** needs to pay **{os.getenv('CENTRALIZED_PERSON')}** _${record[1][1:]}_\n"
+    record_dict = payment_record_to_dict(wks)
+    centralized_person_name = os.getenv('CENTRALIZED_PERSON')
+    for name, amount in record_dict.items():
+        count += amount
+        if amount == 0:
+            zero += f"**{name}** don\'t need to pay\n"
+        elif amount > 0:
+            take_money += f"**{centralized_person_name}** needs to pay **{name}** _${amount}_\n"
+        else:
+            need_pay += f"**{name}** needs to pay **{centralized_person_name}** _${abs(amount)}_\n"
 
-        centralized_person = f"**{os.getenv('CENTRALIZED_PERSON')}** "
-        centralized_person += "doesn't need to pay" if count == 0 else \
-            f"{'needs to pay' if count > 0 else 'will receive'} ${abs(round(count, 3))} in total"
+    centralized_person_text = f"**{centralized_person_name}** "
+    centralized_person_text += "doesn't need to pay" if count == 0 else \
+        f"{'needs to pay' if count > 0 else 'will receive'} ${abs(round(count, 3))} in total"
 
     zero = zero + "\n" if zero else zero
     take_money = take_money + "\n" if take_money else take_money
     need_pay = need_pay + "\n" if need_pay else need_pay
 
-    payment_record_content = zero + take_money + need_pay + centralized_person
+    payment_record_content = zero + take_money + need_pay + centralized_person_text
     return payment_record_content
 
 
-def create_ppl(name: str, amount=0.0) -> bool:
+def create_ppl(name: str, wks: pygsheets.Worksheet, amount=0.0) -> bool:
     try:
-        with open(PAYMENT_RECORD_FILE, 'a', encoding='utf8') as file:
-            file.write(name.lower() + " " + str(amount) + "\n")
+        record_dict = payment_record_to_dict(wks)
+        if name not in record_dict.keys() and name != os.getenv('CENTRALIZED_PERSON'):
+            record_dict[name.lower()] = amount
+            write_payment_record(wks, record_dict)
             return True
     except Exception as e:
         print(e)
-        return False
+    return False
 
 
-def delete_ppl(target: str) -> bool:
-    payment_data = {}
-
-    with open(PAYMENT_RECORD_FILE, 'r', encoding='utf8') as file:
-        for line in file:
-            record = line.split()
-            payment_data[record[0].lower()] = record[1]
-
-    try:
-        if payment_data[target] != '0.0':
-            return False
-        del payment_data[target]
-    except KeyError:
-        return False
-
-    with open(PAYMENT_RECORD_FILE, "w+", encoding='utf8') as file:
-        for name, amount in payment_data.items():
-            file.write(name + ' ' + amount + "\n")
-    return True
+def delete_ppl(target: str, wks: pygsheets.Worksheet) -> bool:
+    record_dict = payment_record_to_dict(wks)
+    if target in record_dict.keys() and record_dict[target] == 0:
+        del record_dict[target]
+        write_payment_record(wks, record_dict)
+        return True
+    return False
 
 
 def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: float) -> str:
@@ -165,10 +158,10 @@ def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: fl
         return f"> -# {target} needs to pay {os.getenv('CENTRALIZED_PERSON')}: ${original} -→ ${current}\n"
 
 
-def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
+def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pygsheets.Worksheet) -> str:
     update = ""
-    payment_data = payment_record_to_dict()
-    del payment_data[os.getenv('CENTRALIZED_PERSON')]
+    payment_data = payment_record_to_dict(wks)
+    centralized_person = os.getenv('CENTRALIZED_PERSON')
 
     # main logic
     try:
@@ -176,13 +169,13 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
         paid_list = ppl_get_paid.split(',')
         for each_to_pay in pay_list:
             for each_get_paid in paid_list:
-                if each_get_paid == os.getenv('CENTRALIZED_PERSON'):
-                    update += owe(payment_data, each_to_pay, os.getenv('CENTRALIZED_PERSON'), amount)
-                elif each_to_pay == os.getenv('CENTRALIZED_PERSON'):
-                    update += owe(payment_data, os.getenv('CENTRALIZED_PERSON'), each_get_paid, amount)
+                if each_get_paid == centralized_person:
+                    update += owe(payment_data, each_to_pay, centralized_person, amount)
+                elif each_to_pay == centralized_person:
+                    update += owe(payment_data, centralized_person, each_get_paid, amount)
                 else:
-                    update += owe(payment_data, each_to_pay, os.getenv('CENTRALIZED_PERSON'), amount) + \
-                              owe(payment_data, os.getenv('CENTRALIZED_PERSON'), each_get_paid, amount)
+                    update += owe(payment_data, each_to_pay, centralized_person, amount) + \
+                              owe(payment_data, centralized_person, each_get_paid, amount)
                 update += "> \n" if len(paid_list) > 1 else ""
             update += "> \n" if len(pay_list) > 1 else ""
         if ">" in update[-3:]:
@@ -191,21 +184,19 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
         print("Person not found.")
         return ""
 
-    with open(PAYMENT_RECORD_FILE, "w+", encoding='utf8') as file:
-        for name, amount in payment_data.items():
-            file.write(name + ' ' + str(amount) + '\n')
-
+    write_payment_record(wks, payment_data)
     return update
 
 
-def do_backup() -> None:
+def do_backup(wks: pygsheets.Worksheet) -> None:
     with open(BACKUP_FILE, 'w', encoding='utf8') as bkup_file:
-        bkup_file.write('[' + time.strftime('%Y-%m-%d %H:%M') + "]\n")
-        with open(PAYMENT_RECORD_FILE, 'r', encoding='utf8') as pm_file:
-            for line in pm_file:
-                bkup_file.write(line)
+        time_text = time.strftime('%Y-%m-%d %H:%M')
+        bkup_file.write(f"[{time_text}]\n")
+
+        for name, amount in payment_record_to_dict(wks).items():
+            bkup_file.write(name + ' ' + str(amount) + '\n')
         bkup_file.write("\n")
-    write_log(f"\n---------------backup: [{time.strftime('%Y-%m-%d %H:%M')}]---------------")
+    write_log(f"\n---------------backup: [{time_text}]---------------")
 
 
 def show_backup() -> str:
@@ -234,9 +225,8 @@ def parse_optional_args(args: list[str]) -> tuple[bool, bool, [str]] or False:
     return service_charge, currency, reason
 
 
-async def payment_system(bot: commands.Bot, message):
+async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygsheets.Worksheet):
     async def single_pm(prev: [str or bool] = None):
-        cmd_input = None
         menu = None
         msg: list[str] = message.message.content.lower().split()
 
@@ -311,11 +301,15 @@ async def payment_system(bot: commands.Bot, message):
         handler = None
         if currency != UNIFIED_CURRENCY and currency in SUPPORTED_CURRENCY:
             handler = ExchangeRateHandler()
-            amount = handler(currency, amount).split('.')
+            amount = handler(currency, amount)
             # amount = amount[0] + '.' + amount[1][:ROUND_OFF_DP]
-            amount = amount[0] + '.' + amount[1]
-            amount = "".join(amount.split(','))
-            amount = round(float(amount), ROUND_OFF_DP)
+            # amount = amount[0] + '.' + amount[1]
+            amount = ''.join(amount.split(','))
+            try:
+                amount = round(float(amount), ROUND_OFF_DP)
+            except ValueError:
+                await message.channel.send("**Value Error encountered in exchange handling!**")
+                return
 
         # log the record
         log_content = f"{message.author}: {ppl_to_pay} " \
@@ -331,7 +325,7 @@ async def payment_system(bot: commands.Bot, message):
             ppl_get_paid = temp
 
         # perform the payment operation
-        update = payment_handling(ppl_to_pay, ppl_get_paid, float(amount))
+        update = payment_handling(ppl_to_pay, ppl_get_paid, float(amount), wks)
         if not update:
             await message.channel.send("**ERROR: Payment handling failed**")
             return
@@ -350,7 +344,7 @@ async def payment_system(bot: commands.Bot, message):
         # handle undo operation
         if undo_view.undo and undo_view.edit:
             undo_update = "> -# Updated records:\n"
-            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount))
+            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount), wks)
             await message.channel.send("**Undo has been executed for editing!**\n")
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
@@ -359,14 +353,15 @@ async def payment_system(bot: commands.Bot, message):
                 [ppl_to_pay, operation_owe, ppl_get_paid, menu.amount_text, service_charge, currency, menu.reason])
         elif undo_view.undo:
             undo_update = "> -# Updated records:\n"
-            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount))
+            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount), wks)
             await message.channel.send("**Undo has been executed!**\n")
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)
 
     log_channel = bot.get_channel(int(os.getenv('LOG_CHANNEL_ID')))
-    payment_data = payment_record_to_dict()
+    payment_data = payment_record_to_dict(wks)
+    payment_data[os.getenv('CENTRALIZED_PERSON')] = -1
     # for each_pm in message.message.content.split('\n'):
     #     if each_pm:
     #         await single_pm()

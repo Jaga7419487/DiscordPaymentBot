@@ -25,8 +25,7 @@ https://www.maxlist.xyz/2018/09/25/python_googlesheet_crud/#%E3%84%A7_Python_%E9
 
 
 def wks_to_dict(wks):
-    df = wks.get_as_df()
-    return df.set_index('Name')['Amount'].to_dict()
+    return wks.get_as_df().set_index('Name')['Amount'].to_dict()
 
 
 def dict_to_df(record):
