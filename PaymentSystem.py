@@ -14,10 +14,15 @@ load_dotenv()
 
 
 def payment_record_to_dict(wks: pygsheets.Worksheet) -> dict:
-    return wks.get_as_df().set_index('Name')['Amount'].to_dict()
+    df = wks.get_as_df()
+    record_dict = df.set_index(df['Name'].astype(str))['Amount'].to_dict()
+    if '' in record_dict.keys():
+        del record_dict['']
+    return record_dict
 
 
 def write_payment_record(wks: pygsheets.Worksheet, record: dict) -> None:
+    wks.clear()
     df = pd.DataFrame(list(record.items()), columns=['Name', 'Amount'])
     wks.set_dataframe(df, 'A1')
 
