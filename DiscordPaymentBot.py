@@ -7,7 +7,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
-from constants import BOT_STATUS, BOT_DESCRIPTION, LOG_SHOW_NUMBER, DEFAULT_LOG_SHOW_NUMBER
+from constants import BOT_STATUS, BOT_DESCRIPTION, LOG_SHOW_NUMBER, DEFAULT_LOG_SHOW_NUMBER, SUPPORTED_CURRENCY
 from deprecated.AutoPianoBooking import piano_system
 
 load_dotenv()
@@ -42,6 +42,11 @@ def run(wks: pygsheets.Worksheet):
                  brief="Latest payment record inputs")
     async def logall(message: commands.Context):
         await message.channel.send(show_log())
+
+    @bot.command(name='currencies', help="Show all the supported currencies", brief="All supported currencies")
+    async def show_all_currencies(message: commands.Context):
+        currency_text = '\n'.join([f"**{key}**: {value}" for key, value in SUPPORTED_CURRENCY.items()])
+        await message.channel.send(currency_text)
 
     @bot.command(help="Backup the current payment record in a separate file", brief="Backup the payment record")
     async def backup(message: commands.Context):

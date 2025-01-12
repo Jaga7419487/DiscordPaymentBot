@@ -1,7 +1,6 @@
 import discord
 
-from ExchangeRateHandler import switch_currency
-from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY
+from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CURRENCY
 
 
 def dict_to_options(record_dict: dict):
@@ -52,22 +51,22 @@ class ServiceChargeButton(discord.ui.Button):
         await interaction.response.defer()
 
 
-class CurrencyButton(discord.ui.Button):
-    def __init__(self, currency: str):
-        super().__init__(
-            label=currency,
-            custom_id="currency_btn",
-            emoji='💱',
-            row=0,
-            disabled=False
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        self.view.currency = switch_currency(self.view.currency)
-        self.view.currency_btn.label = switch_currency(self.view.currency)
-        self.view.update_description()
-        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
-        await interaction.response.defer()
+# class CurrencyButton(discord.ui.Button):
+#     def __init__(self, currency: str):
+#         super().__init__(
+#             label=currency,
+#             custom_id="currency_btn",
+#             emoji='💱',
+#             row=0,
+#             disabled=False
+#         )
+#
+#     async def callback(self, interaction: discord.Interaction):
+#         self.view.currency = switch_currency(self.view.currency)
+#         self.view.currency_btn.label = switch_currency(self.view.currency)
+#         self.view.update_description()
+#         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+#         await interaction.response.defer()
 
 
 class SelectPplToPay(discord.ui.Select):
@@ -78,7 +77,6 @@ class SelectPplToPay(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         self.view.pay_text = choices_to_text(self.values)
         self.view.update_description()
-        self.view.enter_btn.disabled = False if self.view.correct_input() else True
         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
 
@@ -91,39 +89,53 @@ class SelectPersonGetPaid(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         self.view.paid_text = self.values[0]
         self.view.update_description()
-        self.view.enter_btn.disabled = False if self.view.correct_input() else True
         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
 
 
 class AmountModal(discord.ui.Modal):
     amount_textinput = discord.ui.TextInput(
-        label="Enter the amount",
+        label="AMOUNT",
         placeholder="Type the amount here...",
     )
     reason_textinput = discord.ui.TextInput(
-        label="Reason",
+        label="REASON",
         placeholder="Type the reason here...",
         required=False
     )
+    currency_textinput = discord.ui.TextInput(
+        label="CURRENCY (JPY, CNY...)",
+        placeholder="HKD",
+        required=False
+    )
 
-    def __init__(self, amount: float, reason: str):
+    def __init__(self, amount: str, reason: str, currency: str):
         super().__init__(title="Amount")
         self.amount = amount
+        if float(amount) != 0.0:
+            self.amount_textinput.default = amount
+
         self.reason = reason
-        if amount:
-            self.amount_textinput.default = f"{amount}"
         if reason:
             self.reason_textinput.default = reason[1:-1]
+
+        self.currency = currency if currency != UNIFIED_CURRENCY else UNIFIED_CURRENCY
+        if currency != UNIFIED_CURRENCY:
+            self.currency_textinput.default = currency
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer()
         try:
-            self.amount = float(self.amount_textinput.value)
+            self.amount = str(float(self.amount_textinput.value))
             self.reason = self.reason_textinput.value
-            # self.reason = f"({self.reason_textinput.value})" if self.reason_textinput.value != "" else ""
+            if self.currency_textinput.value.upper() in SUPPORTED_CURRENCY.keys():
+                self.currency = self.currency_textinput.value.upper()
+            elif self.currency_textinput.value == '':
+                self.currency = UNIFIED_CURRENCY
+            else:
+                await interaction.channel.send("Invalid currency!")
         except ValueError:
-            await interaction.channel.send("Entered amount not a number!")
+            await interaction.channel.send("Invalid amount!")
         self.stop()
 
 
@@ -137,14 +149,14 @@ class ModalTrigger(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        self.view.amount_modal = AmountModal(float(self.view.amount_text), self.view.reason)
+        self.view.amount_modal = AmountModal(self.view.amount_text, self.view.reason, self.view.currency)
         await interaction.response.send_modal(self.view.amount_modal)
         await self.view.amount_modal.wait()
 
-        self.view.amount_text = f"{self.view.amount_modal.amount}"
+        self.view.amount_text = self.view.amount_modal.amount
         self.view.reason = self.view.amount_modal.reason
+        self.view.currency = self.view.amount_modal.currency
         self.view.update_description()
-        self.view.enter_btn.disabled = False if self.view.correct_input() else True
         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
 
 
@@ -232,8 +244,8 @@ class EditButton(discord.ui.Button):
 
 
 class InputView(discord.ui.View):
-    def __init__(self, record: dict, pay_text: str = "???", owe: bool = True, paid_text: str = "???", amount: str = "0",
-                 service_charge: bool = False, currency: str = UNIFIED_CURRENCY, reason: str = ""):
+    def __init__(self, record: dict, pay_text="???", owe=True, paid_text="???", amount="0",
+                 service_charge=False, currency=UNIFIED_CURRENCY, reason=""):
         super().__init__(timeout=MENU_TIMEOUT)
 
         self.cancelled = False
@@ -251,7 +263,7 @@ class InputView(discord.ui.View):
 
         self.owe_btn = OweButton(self.owe)
         self.service_charge_btn = ServiceChargeButton(self.service_charge)
-        self.currency_btn = CurrencyButton(switch_currency(self.currency))
+        # self.currency_btn = CurrencyButton(switch_currency(self.currency))
         self.modal_trigger = ModalTrigger()
         self.enter_btn = EnterButton()
         self.cancel_btn = CancelButton()
@@ -261,7 +273,7 @@ class InputView(discord.ui.View):
 
         self.add_item(self.owe_btn)
         self.add_item(self.service_charge_btn)
-        self.add_item(self.currency_btn)
+        # self.add_item(self.currency_btn)
         self.add_item(self.ppl_to_pay_menu)
         self.add_item(self.person_get_paid_menu)
         self.add_item(self.modal_trigger)
@@ -270,25 +282,26 @@ class InputView(discord.ui.View):
 
     def __del__(self):
         del self.owe_btn
-        del self.currency_btn
+        # del self.currency_btn
         del self.modal_trigger
         del self.enter_btn
         del self.cancel_btn
         del self.ppl_to_pay_menu
         del self.person_get_paid_menu
 
-    def update_description(self) -> None:
-        operation = "owe" if self.owe else "pay back"
-        currency_text = f"[{self.currency}]" if self.currency != UNIFIED_CURRENCY else ""
-        service_charge_text = ' [+10%]' if self.service_charge else ''
-        self.embed_text.description = f"{self.pay_text} {operation} {self.paid_text} " \
-                                      f"{self.amount_text}{' (' + self.reason + ')' if self.reason else ''}" \
-                                      f"{currency_text}{service_charge_text}"
-
     def correct_input(self) -> bool:
         return not (self.pay_text == "???" or self.paid_text == "???" or
                     self.amount_text == '0' or self.amount_text == "0.0" or
                     self.paid_text in self.pay_text)
+
+    def update_description(self) -> None:
+        operation = "owe" if self.owe else "pay back"
+        currency_text = f" [{self.currency}]" if self.currency != UNIFIED_CURRENCY else ""
+        service_charge_text = ' [+10%]' if self.service_charge else ''
+        self.embed_text.description = f"{self.pay_text} {operation} {self.paid_text} " \
+                                      f"{self.amount_text}{' (' + self.reason + ')' if self.reason else ''}" \
+                                      f"{currency_text}{service_charge_text}"
+        self.enter_btn.disabled = not self.correct_input()
 
     async def on_timeout(self) -> None:
         for item in self.children:

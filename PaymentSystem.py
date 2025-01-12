@@ -3,11 +3,11 @@ import time
 
 import pandas as pd
 import pygsheets
+import requests
 from discord.ext import commands
 from dotenv import load_dotenv
 
 import PaymentSystemUI
-from ExchangeRateHandler import ExchangeRateHandler
 from constants import *
 
 load_dotenv()
@@ -222,7 +222,7 @@ def parse_optional_args(args: list[str]) -> tuple[bool, bool, [str]] or False:
 
     for i in range(len(args)):
         if i <= 1 and args[i].startswith('-'):
-            if args[i][1:].upper() not in SUPPORTED_CURRENCY:
+            if args[i][1:].upper() not in SUPPORTED_CURRENCY.keys():
                 return False
             currency = args[i][1:].upper()
         elif args[i] == "sc":
@@ -231,6 +231,20 @@ def parse_optional_args(args: list[str]) -> tuple[bool, bool, [str]] or False:
             reason += args[i] + " "
 
     return service_charge, currency, reason[:-1]
+
+
+def exchange_currency(from_cur: str, amount: str) -> tuple[float, float]:
+    """
+    :param from_cur: base currency to convert from
+    :param amount: amount to convert
+    :return: tuple of converted amount and exchange rate
+    """
+    to_cur = 'HKD'
+    url = f"https://marketdata.tradermade.com/api/v1/convert?api_key={os.getenv('TRADER_MADE_API_KEY')}&" \
+          f"from={from_cur}&to={to_cur}&amount={amount}"
+    response = requests.get(url)
+    data = response.json()
+    return data['total'], data['quote']
 
 
 async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygsheets.Worksheet):
@@ -304,20 +318,14 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
                 await message.channel.send("**> Input closed. You take too long!**")
                 return
 
-        amount = str(round(float(amount) * 1.1, ROUND_OFF_DP)) if service_charge else amount
+        """ amount: float"""
+        if currency != UNIFIED_CURRENCY and currency in SUPPORTED_CURRENCY.keys():
+            amount, exchange_rate = exchange_currency(currency, amount)
+        else:
+            amount = float(amount)
+            exchange_rate = 1.0
 
-        handler = None
-        if currency != UNIFIED_CURRENCY and currency in SUPPORTED_CURRENCY:
-            handler = ExchangeRateHandler()
-            amount = handler(currency, amount)
-            # amount = amount[0] + '.' + amount[1][:ROUND_OFF_DP]
-            # amount = amount[0] + '.' + amount[1]
-            amount = ''.join(amount.split(','))
-            try:
-                amount = round(float(amount), ROUND_OFF_DP)
-            except ValueError:
-                await message.channel.send("**Value Error encountered in exchange handling!**")
-                return
+        amount = round(amount * 1.1, ROUND_OFF_DP) if service_charge else amount
 
         # switch pay & paid for pay back operation
         if not operation_owe:
@@ -332,9 +340,11 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             return
 
         # log the record
-        log_content = f"{message.author}: {ppl_to_pay} " \
-                      f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} " \
-                      f"${amount}{'(' + reason + ')' if reason else ''}"
+        operation_text = "owe" if operation_owe else "pay back"
+        reason_text = ' (' + reason + ')' if reason else ''
+        currency_text = f" [{currency}({exchange_rate}) -> HKD(1)]" if currency != UNIFIED_CURRENCY else ""
+        log_content = f"{message.author}: {ppl_to_pay} {operation_text} {ppl_get_paid} ${amount}" \
+                      f"{reason_text}{currency_text}"
         write_log(log_content)
         await log_channel.send(log_content)
         await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`"
@@ -342,9 +352,6 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
 
         undo_view = PaymentSystemUI.UndoView(not cmd_input)
         undo_view.message = await message.send(view=undo_view)
-
-        if handler:
-            handler.quit()
 
         await undo_view.wait()
 

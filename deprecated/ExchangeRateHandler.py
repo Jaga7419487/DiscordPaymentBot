@@ -5,7 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from constants import UNIFIED_CURRENCY, SUPPORTED_CURRENCY, CURRENCY_FILE
+from constants import UNIFIED_CURRENCY, SUPPORTED_CURRENCY
 
 LINK = "https://www.oanda.com/currency-converter/en/?from=CNY&to=USD&amount=12"
 
@@ -20,8 +20,7 @@ targetCur_amt_path = \
     "/html/body/div[1]/main/div[1]/div/div/div[3]/div/div[1]/div[1]/div/div[2]/div[3]/div[2]/div[1]/div/input"
 
 
-def store_exchange_rate(curr_index: int, rate: float) -> None:
-    ...
+# def store_exchange_rate(curr_index: int, rate: float) -> None:
     # not done yet
     # with open(CURRENCY_FILE, 'r', encoding='utf8') as file:
     #     rate_dict = {line.split()[0]: [line.split()[1], line.split()[2]] for line in file}
@@ -34,8 +33,7 @@ def store_exchange_rate(curr_index: int, rate: float) -> None:
     #             file.write(f"{curr} {value[0]} {value[1]}\n")
 
 
-def get_stored_exchange_rate(curr_index: int) -> str:
-    ...
+# def get_stored_exchange_rate(curr_index: int) -> str:
     # with open(CURRENCY_FILE, 'r', encoding='utf8') as file:
     #     for line in file:
     #         curr, date, rate = line.split()
@@ -95,7 +93,7 @@ class ExchangeRateHandler:
         self.enter_amount(amount, baseCur_amt_path)
         time.sleep(0.5)
         result = self.get_amount(targetCur_amt_path)
-        store_exchange_rate(target, float(result) / float(amount))  # Not done yet
+        # store_exchange_rate(target, float(result) / float(amount))  # Not done yet
         return result
 
 
