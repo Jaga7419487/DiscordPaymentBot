@@ -120,7 +120,8 @@ class AmountModal(discord.ui.Modal):
         await interaction.response.defer()
         try:
             self.amount = float(self.amount_textinput.value)
-            self.reason = f"({self.reason_textinput.value})" if self.reason_textinput.value != "" else ""
+            self.reason = self.reason_textinput.value
+            # self.reason = f"({self.reason_textinput.value})" if self.reason_textinput.value != "" else ""
         except ValueError:
             await interaction.channel.send("Entered amount not a number!")
         self.stop()
@@ -281,7 +282,8 @@ class InputView(discord.ui.View):
         currency_text = f"[{self.currency}]" if self.currency != UNIFIED_CURRENCY else ""
         service_charge_text = ' [+10%]' if self.service_charge else ''
         self.embed_text.description = f"{self.pay_text} {operation} {self.paid_text} " \
-                                      f"{self.amount_text} {self.reason} {currency_text}{service_charge_text}"
+                                      f"{self.amount_text}{' (' + self.reason + ')' if self.reason else ''}" \
+                                      f"{currency_text}{service_charge_text}"
 
     def correct_input(self) -> bool:
         return not (self.pay_text == "???" or self.paid_text == "???" or

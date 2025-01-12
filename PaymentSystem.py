@@ -334,7 +334,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         # log the record
         log_content = f"{message.author}: {ppl_to_pay} " \
                       f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} " \
-                      f"${amount}{' (' + reason + ')'}"
+                      f"${amount}{'(' + reason + ')' if reason else ''}"
         write_log(log_content)
         await log_channel.send(log_content)
         await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`"

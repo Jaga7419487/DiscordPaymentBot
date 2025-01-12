@@ -35,12 +35,13 @@ def store_exchange_rate(curr_index: int, rate: float) -> None:
 
 
 def get_stored_exchange_rate(curr_index: int) -> str:
-    with open(CURRENCY_FILE, 'r', encoding='utf8') as file:
-        for line in file:
-            curr, date, rate = line.split()
-            if curr == SUPPORTED_CURRENCY[curr_index] and date == time.strftime("%d/%m", time.gmtime()):
-                return line.split()[2]
-        return ""  # currency not found
+    ...
+    # with open(CURRENCY_FILE, 'r', encoding='utf8') as file:
+    #     for line in file:
+    #         curr, date, rate = line.split()
+    #         if curr == SUPPORTED_CURRENCY[curr_index] and date == time.strftime("%d/%m", time.gmtime()):
+    #             return line.split()[2]
+    #     return ""  # currency not found
 
 
 class ExchangeRateHandler:
@@ -78,9 +79,9 @@ class ExchangeRateHandler:
         self.driver.quit()
 
     def __call__(self, base: str, amount: str, target=UNIFIED_CURRENCY) -> str:
-        stored_rate = get_stored_exchange_rate(target)
-        if stored_rate:
-            return str(float(amount) * float(stored_rate))
+        # stored_rate = get_stored_exchange_rate(target)
+        # if stored_rate:
+        #     return str(float(amount) * float(stored_rate))
 
         if not (base in SUPPORTED_CURRENCY and target in SUPPORTED_CURRENCY):
             raise ValueError("Unsupported currency")
