@@ -319,13 +319,6 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
                 await message.channel.send("**Value Error encountered in exchange handling!**")
                 return
 
-        # log the record
-        log_content = f"{message.author}: {ppl_to_pay} " \
-                      f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} " \
-                      f"${amount}{' (' + reason + ')'}"
-        write_log(log_content)
-        await log_channel.send(log_content)
-
         # switch pay & paid for pay back operation
         if not operation_owe:
             temp = ppl_to_pay
@@ -338,6 +331,12 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             await message.channel.send("**ERROR: Payment handling failed**")
             return
 
+        # log the record
+        log_content = f"{message.author}: {ppl_to_pay} " \
+                      f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} " \
+                      f"${amount}{' (' + reason + ')'}"
+        write_log(log_content)
+        await log_channel.send(log_content)
         await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`"
                                    f"\n> -# Updated records:\n{update}")
 
