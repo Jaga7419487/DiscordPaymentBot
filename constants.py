@@ -86,6 +86,7 @@ BOT_DESCRIPTION = f"""
 `!delete [name]`: Deletes a user if he has no debts (e.g. `!delete personA`)
 `!log`: Shows the {LOG_SHOW_NUMBER} latest payment record inputs
 `!logall`: Shows the {DEFAULT_LOG_SHOW_NUMBER} latest payment record inputs
+`!currencies`: Shows all the supported currencies
 `!backup`: Backups the current payment record in a separate file
 `!showbackup`: Shows the backup records
 **`!pm`: Enters a payment record (UI window if only `!pm` sent)**
