@@ -230,7 +230,7 @@ def parse_optional_args(args: list[str]) -> tuple[bool, bool, [str]] or False:
         else:
             reason += args[i] + " "
 
-    return service_charge, currency, reason
+    return service_charge, currency, reason[:-1]
 
 
 async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygsheets.Worksheet):
@@ -322,7 +322,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         # log the record
         log_content = f"{message.author}: {ppl_to_pay} " \
                       f"{'owe' if operation_owe else 'pay back'} {ppl_get_paid} " \
-                      f"${amount}{' ' + reason}"
+                      f"${amount}{' (' + reason + ')'}"
         write_log(log_content)
         await log_channel.send(log_content)
 
