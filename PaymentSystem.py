@@ -345,9 +345,12 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         currency_text = f" [{currency}({exchange_rate}) -> HKD(1)]" if currency != UNIFIED_CURRENCY else ""
         log_content = f"{message.author}: {ppl_to_pay} {operation_text} {ppl_get_paid} ${amount}" \
                       f"{reason_text}{currency_text}"
+        user_mention = ' '.join([f'<@{USER_MAPPING.get(each)}>' for each in ppl_to_pay.split(',') + [ppl_get_paid]
+                                 if USER_MAPPING.get(each)])
+        user_mention = '\n-# ' + user_mention if user_mention else ''
         write_log(log_content)
         await log_channel.send(log_content)
-        await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`"
+        await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`{user_mention}"
                                    f"\n> -# Updated records:\n{update}")
 
         undo_view = PaymentSystemUI.UndoView(not cmd_input)
