@@ -6,6 +6,8 @@ venv/
 .env
 *.json
 
+keys/
+test/
 botInfo_old.py
 test_bot.py
 gsheet_test.py

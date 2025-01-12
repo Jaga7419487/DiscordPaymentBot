@@ -29,7 +29,7 @@ def write_payment_record(wks: pygsheets.Worksheet, record: dict) -> None:
 
 def write_log(message: str) -> None:
     with open(LOG_FILE, 'a', encoding="utf8") as file:
-        file.write(message + "\n")
+        file.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
 
 
 def show_log(num: int = -1) -> str:
@@ -84,24 +84,29 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
     return payment_record_content
 
 
-def create_ppl(name: str, wks: pygsheets.Worksheet, amount=0.0) -> bool:
+def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
     try:
         record_dict = payment_record_to_dict(wks)
         if name not in record_dict.keys() and name != os.getenv('CENTRALIZED_PERSON'):
-            record_dict[name.lower()] = amount
+            record_dict[name.lower()] = 0.0
             write_payment_record(wks, record_dict)
+            write_log(f"{author}: Created new person: {name}")
             return True
     except Exception as e:
         print(e)
     return False
 
 
-def delete_ppl(target: str, wks: pygsheets.Worksheet) -> bool:
-    record_dict = payment_record_to_dict(wks)
-    if target in record_dict.keys() and record_dict[target] == 0:
-        del record_dict[target]
-        write_payment_record(wks, record_dict)
-        return True
+def delete_ppl(target: str, author: str, wks: pygsheets.Worksheet) -> bool:
+    try:
+        record_dict = payment_record_to_dict(wks)
+        if target in record_dict.keys() and record_dict[target] == 0:
+            del record_dict[target]
+            write_payment_record(wks, record_dict)
+            write_log(f"{author}: Deleted person: {target}")
+            return True
+    except Exception as e:
+        print(e)
     return False
 
 
@@ -195,13 +200,11 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
 
 def do_backup(wks: pygsheets.Worksheet) -> None:
     with open(BACKUP_FILE, 'w', encoding='utf8') as bkup_file:
-        time_text = time.strftime('%Y-%m-%d %H:%M')
-        bkup_file.write(f"[{time_text}]\n")
-
+        bkup_file.write(f"[{time.strftime('%Y-%m-%d %H:%M')}]\n")
         for name, amount in payment_record_to_dict(wks).items():
-            bkup_file.write(name + ' ' + str(amount) + '\n')
+            bkup_file.write(f"{name} {amount}\n")
         bkup_file.write("\n")
-    write_log(f"\n---------------backup: [{time_text}]---------------")
+    write_log(f"-------------------------------------Backup-------------------------------------")
 
 
 def show_backup() -> str:

@@ -6,9 +6,9 @@ import pygsheets
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from AutoPianoBooking import piano_system
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
 from constants import BOT_STATUS, BOT_DESCRIPTION, LOG_SHOW_NUMBER, DEFAULT_LOG_SHOW_NUMBER
+from deprecated.AutoPianoBooking import piano_system
 
 load_dotenv()
 
@@ -57,15 +57,18 @@ def run(wks: pygsheets.Worksheet):
         if message.channel.id != pm_channel_id:
             await message.channel.send("Please create in the **payment** channel")
             return
+
         if len(message.message.content.split()) < 2:
             await message.channel.send("Please input the name of the person you want to create")
             return
+
         person = message.message.content.split()[1]
-        if create_ppl(person, wks):
-            await message.channel.send(
-                f"### Person {message.message.content.split()[1]} created!\n{payment_record(wks)}")
+        author = message.author.name
+        if create_ppl(person, author, wks):
+            await message.channel.send(f"### Person {person} created!\n{payment_record(wks)}")
+            await bot.get_channel(int(os.getenv('LOG_CHANNEL_ID'))).send(f"{author}: Created new person: {person}")
         else:
-            await message.channel.send(f"{person} already exists!")
+            await message.channel.send(f"**Failed to create {person}!**\nPerson already exists.")
 
     @bot.command(help="Delete a user if he has no debts", brief="Delete a user")
     async def delete(message: commands.Context):
@@ -73,12 +76,17 @@ def run(wks: pygsheets.Worksheet):
             await message.channel.send("Please delete in the **payment** channel")
             return
 
-        if delete_ppl(message.message.content.split()[1], wks):
-            await message.channel.send(
-                f"**Person {message.message.content.split()[1]} deleted!**\n{payment_record(wks)}")
+        if len(message.message.content.split()) < 2:
+            await message.channel.send("Please input the name of the person you want to delete")
+            return
+
+        target = message.message.content.split()[1]
+        author = message.author.name
+        if delete_ppl(target, author, wks):
+            await message.channel.send(f"### Person {target} deleted!\n{payment_record(wks)}")
+            await bot.get_channel(int(os.getenv('LOG_CHANNEL_ID'))).send(f"{author}: Deleted person: {target}")
         else:
-            await message.channel.send(f"**Fail to delete {message.message.content.split()[1]}!**\n"
-                                       f"Person not found or has not paid off yet.")
+            await message.channel.send(f"**Failed to delete {target}!**\nPerson not found or has not paid off yet.")
 
     @bot.command(help="Enters a payment record", brief="Enters a payment record")
     async def pm(message: commands.Context):
@@ -104,6 +112,7 @@ if __name__ == '__main__':
         gc_dict['private_key'] = gc_dict['private_key'].replace('\\n', '\n')
         with open('discord-payment-bot.json', 'w') as json_file:
             json.dump(gc_dict, json_file, indent=2)
+            print("Google Sheet credentials generated successfully")
 
     # Link to the Google Sheet
     gc = pygsheets.authorize(service_file='discord-payment-bot.json')
