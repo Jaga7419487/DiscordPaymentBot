@@ -127,7 +127,11 @@ class AmountModal(discord.ui.Modal):
         await interaction.response.defer()
         try:
             self.amount = str(float(self.amount_textinput.value))
-            self.reason = self.reason_textinput.value
+            if self.reason_textinput.value and self.reason_textinput.value[0] == '(' \
+                    and self.reason_textinput.value[-1] == ')':
+                self.reason = self.reason_textinput.value[1:-1]
+            else:
+                self.reason = self.reason_textinput.value
             if self.currency_textinput.value.upper() in SUPPORTED_CURRENCY.keys():
                 self.currency = self.currency_textinput.value.upper()
             elif self.currency_textinput.value == '':
