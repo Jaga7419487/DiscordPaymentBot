@@ -328,6 +328,12 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         amount *= 1.1 if service_charge else 1
         amount = round(amount, ROUND_OFF_DP)
 
+        operation_text = "owe" if operation_owe else "pay back"
+        reason_text = ' (' + reason + ')' if reason else ''
+        currency_text = f" [{currency}({exchange_rate}) -> HKD(1)]" if currency != UNIFIED_CURRENCY else ""
+        log_content = f"{message.author}: {ppl_to_pay} {operation_text} {ppl_get_paid} ${amount}" \
+                      f"{reason_text}{currency_text}"
+
         # switch pay & paid for pay back operation
         if not operation_owe:
             temp = ppl_to_pay
@@ -341,11 +347,6 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             return
 
         # log the record
-        operation_text = "owe" if operation_owe else "pay back"
-        reason_text = ' (' + reason + ')' if reason else ''
-        currency_text = f" [{currency}({exchange_rate}) -> HKD(1)]" if currency != UNIFIED_CURRENCY else ""
-        log_content = f"{message.author}: {ppl_to_pay} {operation_text} {ppl_get_paid} ${amount}" \
-                      f"{reason_text}{currency_text}"
         user_mention = ' '.join([f'<@{USER_MAPPING.get(each)}>' for each in ppl_to_pay.split(',') + [ppl_get_paid]
                                  if USER_MAPPING.get(each)])
         user_mention = '\n-# ' + user_mention if user_mention else ''
