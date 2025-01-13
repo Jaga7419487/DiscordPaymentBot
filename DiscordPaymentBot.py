@@ -104,21 +104,19 @@ def run(wks: pygsheets.Worksheet):
     async def piano(message: commands.Context):
         await piano_system(bot, message)
 
+    open('discord-payment-bot.json', 'w').close()
     bot.run(os.getenv('BOT_KEY'))
 
 
 if __name__ == '__main__':
-    # Generate the gc file from .env if it doesn't exist
-    if not os.path.exists('discord-payment-bot.json'):
-        gc_list = ["type", "project_id", "private_key_id", "private_key", "client_email", "client_id", "auth_uri",
-                   "token_uri",
-                   "auth_provider_x509_cert_url", "client_x509_cert_url", "universe_domain"]
-        gc_dict = {key: os.getenv(key.upper()) for key in gc_list}
-        gc_dict['private_key'] = gc_dict['private_key'].replace('\\n', '\n')
-        with open('discord-payment-bot.json', 'w') as json_file:
-            json.dump(gc_dict, json_file, indent=2)
-            print("Google Sheet credentials generated successfully")
-            print(f"File discord-payment-bot.json exists: {os.path.exists('discord-payment-bot.json')}")
+    # always add google sheet credentials to the json file
+    gc_list = ["type", "project_id", "private_key_id", "private_key", "client_email", "client_id", "auth_uri",
+               "token_uri",
+               "auth_provider_x509_cert_url", "client_x509_cert_url", "universe_domain"]
+    gc_dict = {key: os.getenv(key.upper()) for key in gc_list}
+    gc_dict['private_key'] = gc_dict['private_key'].replace('\\n', '\n')
+    with open('discord-payment-bot.json', 'w') as json_file:
+        json.dump(gc_dict, json_file, indent=2)
 
     # Link to the Google Sheet
     gc = pygsheets.authorize(service_file='discord-payment-bot.json')
