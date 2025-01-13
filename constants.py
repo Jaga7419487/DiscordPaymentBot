@@ -101,6 +101,7 @@ BOT_DESCRIPTION = f"""
 `!currencies`: Shows all the supported currencies
 `!backup`: Backups the current payment record in a separate file
 `!showbackup`: Shows the backup records
+`!pmavg`: Enters a payment record with the amount divided by the number of payees (similar to **!pm**)
 **`!pm`: Enters a payment record (UI window if only `!pm` sent)**
 > __Syntax:__
 > `!pm [payee] [operation] [get paid] [amount] [-CUR] [sc] [reason]`

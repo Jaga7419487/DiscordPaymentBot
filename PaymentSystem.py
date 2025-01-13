@@ -247,7 +247,7 @@ def exchange_currency(from_cur: str, amount: str) -> tuple[float, float]:
     return data['total'], data['quote']
 
 
-async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygsheets.Worksheet):
+async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygsheets.Worksheet, avg=False):
     async def single_pm(prev: [str or bool] = None):
         menu = None
         msg: list[str] = message.message.content.lower().split()
@@ -326,6 +326,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             exchange_rate = 1.0
 
         amount *= 1.1 if service_charge else 1
+        amount /= len(ppl_to_pay.split(',')) if avg else 1
         amount = round(amount, ROUND_OFF_DP)
 
         if reason:

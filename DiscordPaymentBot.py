@@ -17,7 +17,6 @@ app = Flask(__name__)
 greet_message = False
 
 
-# Serve the health check HTML
 @app.route('/health_check.html')
 def health_check():
     return send_from_directory(os.getcwd(), 'health_check.html')
@@ -85,11 +84,9 @@ def run(wks: pygsheets.Worksheet):
         if message.channel.id != pm_channel_id:
             await message.channel.send("Please create in the **payment** channel")
             return
-
         if len(message.message.content.split()) < 2:
             await message.channel.send("Please input the name of the person you want to create")
             return
-
         person = message.message.content.split()[1]
         author = message.author.name
         if create_ppl(person, author, wks):
@@ -103,11 +100,9 @@ def run(wks: pygsheets.Worksheet):
         if message.channel.id != pm_channel_id:
             await message.channel.send("Please delete in the **payment** channel")
             return
-
         if len(message.message.content.split()) < 2:
             await message.channel.send("Please input the name of the person you want to delete")
             return
-
         target = message.message.content.split()[1]
         author = message.author.name
         if delete_ppl(target, author, wks):
@@ -122,6 +117,13 @@ def run(wks: pygsheets.Worksheet):
             await message.channel.send("Please input the record in the **payment** channel")
             return
         await payment_system(bot, message, wks)
+
+    @bot.command(help="Enters a payment record by averaging the amount", brief="Enters a payment record by averaging")
+    async def pmavg(message: commands.Context):
+        if message.channel.id != pm_channel_id:
+            await message.channel.send("Please input the record in the **payment** channel")
+            return
+        await payment_system(bot, message, wks, avg=True)
 
     @bot.command(hidden=True, disabled=True)
     async def piano(message: commands.Context):
