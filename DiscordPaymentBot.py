@@ -118,6 +118,7 @@ if __name__ == '__main__':
         with open('discord-payment-bot.json', 'w') as json_file:
             json.dump(gc_dict, json_file, indent=2)
             print("Google Sheet credentials generated successfully")
+            print(f"File discord-payment-bot.json exists: {os.path.exists('discord-payment-bot.json')}")
 
     # Link to the Google Sheet
     gc = pygsheets.authorize(service_file='discord-payment-bot.json')
