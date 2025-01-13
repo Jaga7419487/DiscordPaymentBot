@@ -325,7 +325,8 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             amount = float(amount)
             exchange_rate = 1.0
 
-        amount = round(amount * 1.1, ROUND_OFF_DP) if service_charge else amount
+        amount *= 1.1 if service_charge else 1
+        amount = round(amount, ROUND_OFF_DP)
 
         # switch pay & paid for pay back operation
         if not operation_owe:
@@ -334,7 +335,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             ppl_get_paid = temp
 
         # perform the payment operation
-        update = payment_handling(ppl_to_pay, ppl_get_paid, float(amount), wks)
+        update = payment_handling(ppl_to_pay, ppl_get_paid, amount, wks)
         if not update:
             await message.channel.send("**ERROR: Payment handling failed**")
             return
@@ -361,7 +362,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         # handle undo operation
         if undo_view.undo and undo_view.edit:
             undo_update = "> -# Updated records:\n"
-            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount), wks)
+            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, amount, wks)
             await message.channel.send("**Undo has been executed for editing!**\n")
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
@@ -370,7 +371,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
                 [ppl_to_pay, operation_owe, ppl_get_paid, menu.amount_text, service_charge, currency, menu.reason])
         elif undo_view.undo:
             undo_update = "> -# Updated records:\n"
-            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, float(amount), wks)
+            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, amount, wks)
             await message.channel.send("**Undo has been executed!**\n")
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
