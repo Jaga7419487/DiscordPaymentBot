@@ -65,6 +65,7 @@ USER_MAPPING = {
     'ryan': '619092133936365570',
     '6uo': '597352233490841601',
     'inevitable': '695475297675640882',
+    'andes': '621959791698247680',
 }
 
 ROUND_OFF_DP = 3
@@ -75,7 +76,7 @@ UNDO_TIMEOUT = 3600.0
 
 # PAYMENT_RECORD_FILE = "payment_record.txt"  # Deprecated
 LOG_FILE = "log.txt"
-BACKUP_FILE = "backup_record.txt"
+BACKUP_FILE = "deprecated/backup_record.txt"
 CURRENCY_FILE = "latest_currency.txt"
 
 BOT_DESCRIPTION = f"""
