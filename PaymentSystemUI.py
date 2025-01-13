@@ -95,7 +95,7 @@ class SelectPersonGetPaid(discord.ui.Select):
 
 class AmountModal(discord.ui.Modal):
     amount_textinput = discord.ui.TextInput(
-        label="AMOUNT",
+        label="AMOUNT (3 d.p.)",
         placeholder="Type the amount here...",
     )
     reason_textinput = discord.ui.TextInput(

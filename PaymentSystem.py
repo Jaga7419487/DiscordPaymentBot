@@ -378,8 +378,9 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             await log_channel.send(undo_log_content)
 
     log_channel = bot.get_channel(int(os.getenv('LOG_CHANNEL_ID')))
-    payment_data = payment_record_to_dict(wks)
-    payment_data[os.getenv('CENTRALIZED_PERSON')] = -1
+    payment_data = {os.getenv('CENTRALIZED_PERSON'): -1}
+    payment_data.update(payment_record_to_dict(wks))
+
     # for each_pm in message.message.content.split('\n'):
     #     if each_pm:
     #         await single_pm()

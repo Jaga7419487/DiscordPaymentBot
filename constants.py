@@ -109,8 +109,8 @@ BOT_DESCRIPTION = f"""
 > `amount`: Up to 3 decimal point
 > `-CUR`: Optional: `HKD/CNY/GBP` (default `HKD`)
 > `sc`: Optional: include 10% service charge
-> `reason`: Optional
-> Example: `!pm personA,personB owe personC 100 -CNY sc (example)`
+> `reason`: Optional, no brackets needed
+> Example: `!pm personA,personB owe personC 100 -CNY sc example reason`
 
 -# Developed by __Jaga Chau__ 25-12-2023
 """
