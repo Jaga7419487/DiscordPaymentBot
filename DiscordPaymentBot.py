@@ -14,6 +14,7 @@ from deprecated.AutoPianoBooking import piano_system
 
 load_dotenv()
 app = Flask(__name__)
+greet_message = False
 
 
 # Serve the health check HTML
@@ -36,8 +37,9 @@ def run(wks: pygsheets.Worksheet):
     @bot.event
     async def on_ready():
         print(f"Current logged in user --> {bot.user}")
-        pm_channel = bot.get_channel(pm_channel_id)
-        await pm_channel.send(f"## I am back!\n**Here is the payment record list:**\n{payment_record(wks)}")
+        if greet_message:
+            pm_channel = bot.get_channel(pm_channel_id)
+            await pm_channel.send(f"## I am back!\n**Here is the payment record list:**\n{payment_record(wks)}")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
 
     @bot.command(help="Show the bot information", brief="Bot information")
@@ -47,6 +49,12 @@ def run(wks: pygsheets.Worksheet):
     @bot.command(name="list", help="List out all payment records stored in the bot", brief="List all payment records")
     async def show(message: commands.Context):
         await message.channel.send(payment_record(wks))
+
+    @bot.command(help="Turn on/off greet message when bot is reconnected", brief="Greet message on/off")
+    async def greet(message: commands.Context):
+        global greet_message
+        greet_message = not greet_message
+        await message.channel.send(f'Greet message is now {"on" if greet_message else "off"}')
 
     @bot.command(help=f"Show the {LOG_SHOW_NUMBER} latest payment record inputs",
                  brief="Latest payment record inputs")
