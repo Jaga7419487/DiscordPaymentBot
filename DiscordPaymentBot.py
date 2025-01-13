@@ -1,16 +1,31 @@
 import json
 import os
 
+import threading
 import discord
 import pygsheets
 from discord.ext import commands
 from dotenv import load_dotenv
+from flask import Flask, send_from_directory
 
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
 from constants import BOT_STATUS, BOT_DESCRIPTION, LOG_SHOW_NUMBER, DEFAULT_LOG_SHOW_NUMBER, SUPPORTED_CURRENCY
 from deprecated.AutoPianoBooking import piano_system
 
 load_dotenv()
+app = Flask(__name__)
+
+
+# Serve the health check HTML
+@app.route('/health_check.html')
+def health_check():
+    return send_from_directory(os.getcwd(), 'health_check.html')
+
+
+def run_flask():
+    # Use the port set by Koyeb
+    port = int(os.environ.get('PORT', 8000))  # Default to 8000 if not set
+    app.run(host='0.0.0.0', port=port)
 
 
 def run(wks: pygsheets.Worksheet):
@@ -109,6 +124,9 @@ def run(wks: pygsheets.Worksheet):
 
 
 if __name__ == '__main__':
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+
     # always add google sheet credentials to the json file
     gc_list = ["type", "project_id", "private_key_id", "private_key", "client_email", "client_id", "auth_uri",
                "token_uri",
