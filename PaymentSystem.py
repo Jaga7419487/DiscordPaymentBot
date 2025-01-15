@@ -326,7 +326,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             exchange_rate = 1.0
 
         amount *= 1.1 if service_charge else 1
-        amount /= len(ppl_to_pay.split(',')) if avg else 1
+        amount /= (len(ppl_to_pay.split(',')) + 1) if avg else 1
         amount = round(amount, ROUND_OFF_DP)
 
         if reason:
