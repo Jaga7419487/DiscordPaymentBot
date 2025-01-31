@@ -93,7 +93,7 @@ BOT_DESCRIPTION = f"""
 - **Response:** The bot is expected to response all valid calls with corresponding messages.
 ## List of commands
 `!info`: The message you are reading now
-`!list`: List out all payment records stored in the bot
+`!list`: List out all payment records stored in the bot, short: `!l`
 `!create [name]`: Creates a new user with a name (e.g. `!create personA`)
 `!delete [name]`: Deletes a user if he has no debts (e.g. `!delete personA`)
 `!log`: Shows the {LOG_SHOW_NUMBER} latest payment record inputs

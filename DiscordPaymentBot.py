@@ -1,7 +1,7 @@
 import json
 import os
-
 import threading
+
 import discord
 import pygsheets
 from discord.ext import commands
@@ -45,7 +45,8 @@ def run(wks: pygsheets.Worksheet):
     async def info(message: commands.Context):
         await message.channel.send(BOT_DESCRIPTION)
 
-    @bot.command(name="list", help="List out all payment records stored in the bot", brief="List all payment records")
+    @bot.command(name="list", aliases=['l'], help="List out all payment records stored in the bot",
+                 brief="List all payment records")
     async def show(message: commands.Context):
         await message.channel.send(payment_record(wks))
 
