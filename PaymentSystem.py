@@ -7,7 +7,7 @@ import requests
 from discord.ext import commands
 from dotenv import load_dotenv
 
-import PaymentSystemUI
+from PaymentSystemUI import InputView, UndoView, is_valid_amount, amt_parser
 from constants import *
 
 load_dotenv()
@@ -274,15 +274,32 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
                 await message.channel.send("**Invalid input for receiver!**")
                 return
 
-            try:
-                amount = float(msg[4])
-                if amount == 0.0:
-                    await message.channel.send("**Invalid amount: amount cannot be zero!**")
+            if is_valid_amount(msg[4]):
+                try:
+                    amount = eval(amt_parser(msg[4]))
+                except ZeroDivisionError:
+                    await message.channel.send("**Invalid amount: Don't divide zero la...**")
                     return
-                amount = str(amount)
-            except ValueError:
-                await message.channel.send("**Invalid input for amount!**")
+                except ValueError:
+                    await message.channel.send("**What have you entered for the amount .-.**")
+                    return
+            else:
+                await message.channel.send("**Invalid amount!**")
                 return
+            if amount == 0.0:
+                await message.channel.send("**Invalid amount: amount cannot be zero!**")
+                return
+            amount = str(amount)
+
+            # try:
+            #     amount = float(msg[4])
+            #     if amount == 0.0:
+            #         await message.channel.send("**Invalid amount: amount cannot be zero!**")
+            #         return
+            #     amount = str(amount)
+            # except ValueError:
+            #     await message.channel.send("**Invalid input for amount!**")
+            #     return
 
             parse_result = parse_optional_args(msg[5:])
             if not parse_result:
@@ -298,9 +315,8 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             # Graphic UI
             cmd_input = False
 
-            menu = PaymentSystemUI.InputView(payment_data, prev[0], prev[1], prev[2], prev[3], prev[4], prev[5],
-                                             prev[6]) \
-                if prev else PaymentSystemUI.InputView(payment_data)
+            menu = InputView(payment_data, prev[0], prev[1], prev[2], prev[3], prev[4], prev[5], prev[6]) \
+                if prev else InputView(payment_data)
             menu.message = await message.send(view=menu)
             await menu.wait()
 
@@ -330,7 +346,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         amount = round(amount, ROUND_OFF_DP)
 
         if reason:
-            if reason[0] == '(' and reason[-1] == ')':
+            if reason[0] in '(（' and reason[-1] in '）)':
                 reason_text = ' ' + reason
             else:
                 reason_text = ' (' + reason + ')'
@@ -362,7 +378,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`{user_mention}"
                                    f"\n> -# Updated records:\n{update}")
 
-        undo_view = PaymentSystemUI.UndoView(not cmd_input)
+        undo_view = UndoView(not cmd_input)
         undo_view.message = await message.send(view=undo_view)
 
         await undo_view.wait()

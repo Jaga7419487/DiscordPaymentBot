@@ -2,6 +2,34 @@ import discord
 
 from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CURRENCY
 
+# class CurrencyButton(discord.ui.Button):
+#     def __init__(self, currency: str):
+#         super().__init__(
+#             label=currency,
+#             custom_id="currency_btn",
+#             emoji='💱',
+#             row=0,
+#             disabled=False
+#         )
+#
+#     async def callback(self, interaction: discord.Interaction):
+#         self.view.currency = switch_currency(self.view.currency)
+#         self.view.currency_btn.label = switch_currency(self.view.currency)
+#         self.view.update_description()
+#         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
+#         await interaction.response.defer()
+
+
+VALID_CHARS_SET = set('0123456789+-*/.(（）)')
+
+
+def is_valid_amount(amt: str) -> bool:
+    return VALID_CHARS_SET.issuperset(amt)
+
+
+def amt_parser(amt: str) -> str:
+    return amt.replace('^', '**').replace('（', '(').replace('）', ')')
+
 
 def dict_to_options(record_dict: dict):
     options = []
@@ -51,24 +79,6 @@ class ServiceChargeButton(discord.ui.Button):
         await interaction.response.defer()
 
 
-# class CurrencyButton(discord.ui.Button):
-#     def __init__(self, currency: str):
-#         super().__init__(
-#             label=currency,
-#             custom_id="currency_btn",
-#             emoji='💱',
-#             row=0,
-#             disabled=False
-#         )
-#
-#     async def callback(self, interaction: discord.Interaction):
-#         self.view.currency = switch_currency(self.view.currency)
-#         self.view.currency_btn.label = switch_currency(self.view.currency)
-#         self.view.update_description()
-#         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
-#         await interaction.response.defer()
-
-
 class SelectPplToPay(discord.ui.Select):
     def __init__(self, record: dict):
         options = dict_to_options(record)
@@ -97,6 +107,7 @@ class AmountModal(discord.ui.Modal):
     amount_textinput = discord.ui.TextInput(
         label="AMOUNT (3 d.p.)",
         placeholder="Type the amount here...",
+        required=True
     )
     reason_textinput = discord.ui.TextInput(
         label="REASON",
@@ -116,8 +127,10 @@ class AmountModal(discord.ui.Modal):
             self.amount_textinput.default = amount
 
         self.reason = reason
-        if reason:
+        if reason and self.reason[0] in '(（' and self.reason[-1] in '）)':  # remove brackets
             self.reason_textinput.default = reason[1:-1]
+        else:
+            self.reason_textinput.default = reason
 
         self.currency = currency if currency != UNIFIED_CURRENCY else UNIFIED_CURRENCY
         if currency != UNIFIED_CURRENCY:
@@ -125,21 +138,28 @@ class AmountModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer()
+
         try:
-            self.amount = str(float(self.amount_textinput.value))
-            if self.reason_textinput.value and self.reason_textinput.value[0] == '(' \
-                    and self.reason_textinput.value[-1] == ')':
-                self.reason = self.reason_textinput.value[1:-1]
+            if is_valid_amount(self.amount_textinput.value):
+                self.amount = str(eval(amt_parser(self.amount_textinput.value)))
             else:
-                self.reason = self.reason_textinput.value
-            if self.currency_textinput.value.upper() in SUPPORTED_CURRENCY.keys():
-                self.currency = self.currency_textinput.value.upper()
-            elif self.currency_textinput.value == '':
-                self.currency = UNIFIED_CURRENCY
-            else:
-                await interaction.channel.send("Invalid currency!")
+                await interaction.channel.send("Invalid amount!")
         except ValueError:
-            await interaction.channel.send("Invalid amount!")
+            await interaction.channel.send("**What have you entered for the amount .-.**")
+
+        if self.reason_textinput.value and self.reason_textinput.value[0] in '(（' \
+                and self.reason_textinput.value[-1] == '）)':
+            self.reason = self.reason_textinput.value[1:-1]
+        else:
+            self.reason = self.reason_textinput.value
+
+        if self.currency_textinput.value.upper() in SUPPORTED_CURRENCY.keys():
+            self.currency = self.currency_textinput.value.upper()
+        elif self.currency_textinput.value == '':
+            self.currency = UNIFIED_CURRENCY
+        else:
+            await interaction.channel.send("Invalid currency!")
+
         self.stop()
 
 
@@ -302,8 +322,15 @@ class InputView(discord.ui.View):
         operation = "owe" if self.owe else "pay back"
         currency_text = f" [{self.currency}]" if self.currency != UNIFIED_CURRENCY else ""
         service_charge_text = ' [+10%]' if self.service_charge else ''
+        if self.reason:
+            if self.reason[0] in '(（' and self.reason[-1] in '）)':
+                reason_text = ' ' + self.reason
+            else:
+                reason_text = ' (' + self.reason + ')'
+        else:
+            reason_text = ''
         self.embed_text.description = f"{self.pay_text} {operation} {self.paid_text} " \
-                                      f"{self.amount_text}{' (' + self.reason + ')' if self.reason else ''}" \
+                                      f"{self.amount_text}{reason_text}" \
                                       f"{currency_text}{service_charge_text}"
         self.enter_btn.disabled = not self.correct_input()
 
