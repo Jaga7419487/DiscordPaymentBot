@@ -1,18 +1,14 @@
 import json
-import os
 import threading
 
 import discord
 import pygsheets
 from discord.ext import commands
-from dotenv import load_dotenv
 from flask import Flask, send_from_directory
-
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
-from constants import BOT_STATUS, BOT_DESCRIPTION, LOG_SHOW_NUMBER, DEFAULT_LOG_SHOW_NUMBER, SUPPORTED_CURRENCY
+from constants import *
 from deprecated.AutoPianoBooking import piano_system
 
-load_dotenv()
 app = Flask(__name__)
 greet_message = False
 
@@ -23,21 +19,18 @@ def health_check():
 
 
 def run_flask():
-    # Use the port set by Koyeb
-    port = int(os.environ.get('PORT', 8000))  # Default to 8000 if not set
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=8000)
 
 
 def run(wks: pygsheets.Worksheet):
     intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=intents)
-    pm_channel_id = int(os.getenv('PAYMENT_CHANNEL_ID'))
 
     @bot.event
     async def on_ready():
         print(f"Current logged in user --> {bot.user}")
         if greet_message:
-            pm_channel = bot.get_channel(pm_channel_id)
+            pm_channel = bot.get_channel(PAYMENT_CHANNEL_ID)
             await pm_channel.send(f"## I am back!\n**Here is the payment record list:**\n{payment_record(wks)}")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
 
@@ -61,10 +54,10 @@ def run(wks: pygsheets.Worksheet):
     async def log(message: commands.Context):
         await message.channel.send(show_log(LOG_SHOW_NUMBER))
 
-    @bot.command(help=f"Show the {DEFAULT_LOG_SHOW_NUMBER} latest payment record inputs",
+    @bot.command(help=f"Show the {LONG_LOG_SHOW_NUMBER} latest payment record inputs",
                  brief="Latest payment record inputs")
     async def logall(message: commands.Context):
-        await message.channel.send(show_log())
+        await message.channel.send(show_log(LONG_LOG_SHOW_NUMBER))
 
     @bot.command(name='currencies', help="Show all the supported currencies", brief="All supported currencies")
     async def show_all_currencies(message: commands.Context):
@@ -73,8 +66,7 @@ def run(wks: pygsheets.Worksheet):
 
     @bot.command(help="Backup the current payment record in a separate file", brief="Backup the payment record")
     async def backup(message: commands.Context):
-        do_backup(wks)
-        await message.channel.send("Backup done\n" + show_backup())
+        await message.channel.send("**Backup done**\n" + do_backup(wks))
 
     @bot.command(help="Show the backup records", brief="Show the backup records", hidden=True)
     async def showbackup(message: commands.Context):
@@ -82,7 +74,7 @@ def run(wks: pygsheets.Worksheet):
 
     @bot.command(help="Create a new user with a name", brief="Create a new user")
     async def create(message: commands.Context):
-        if message.channel.id != pm_channel_id:
+        if message.channel.id != PAYMENT_CHANNEL_ID:
             await message.channel.send("Please create in the **payment** channel")
             return
         if len(message.message.content.split()) < 2:
@@ -92,13 +84,13 @@ def run(wks: pygsheets.Worksheet):
         author = message.author.name
         if create_ppl(person, author, wks):
             await message.channel.send(f"### Person {person} created!\n{payment_record(wks)}")
-            await bot.get_channel(int(os.getenv('LOG_CHANNEL_ID'))).send(f"{author}: Created new person: {person}")
+            await bot.get_channel(LOG_CHANNEL_ID).send(f"{author}: Created new person: {person}")
         else:
             await message.channel.send(f"**Failed to create {person}!**\nPerson already exists.")
 
     @bot.command(help="Delete a user if he has no debts", brief="Delete a user")
     async def delete(message: commands.Context):
-        if message.channel.id != pm_channel_id:
+        if message.channel.id != PAYMENT_CHANNEL_ID:
             await message.channel.send("Please delete in the **payment** channel")
             return
         if len(message.message.content.split()) < 2:
@@ -108,20 +100,20 @@ def run(wks: pygsheets.Worksheet):
         author = message.author.name
         if delete_ppl(target, author, wks):
             await message.channel.send(f"### Person {target} deleted!\n{payment_record(wks)}")
-            await bot.get_channel(int(os.getenv('LOG_CHANNEL_ID'))).send(f"{author}: Deleted person: {target}")
+            await bot.get_channel(LOG_CHANNEL_ID).send(f"{author}: Deleted person: {target}")
         else:
             await message.channel.send(f"**Failed to delete {target}!**\nPerson not found or has not paid off yet.")
 
     @bot.command(help="Enters a payment record", brief="Enters a payment record")
     async def pm(message: commands.Context):
-        if message.channel.id != pm_channel_id:
+        if message.channel.id != PAYMENT_CHANNEL_ID:
             await message.channel.send("Please input the record in the **payment** channel")
             return
         await payment_system(bot, message, wks)
 
     @bot.command(help="Enters a payment record by averaging the amount", brief="Enters a payment record by averaging")
     async def pmavg(message: commands.Context):
-        if message.channel.id != pm_channel_id:
+        if message.channel.id != PAYMENT_CHANNEL_ID:
             await message.channel.send("Please input the record in the **payment** channel")
             return
         await payment_system(bot, message, wks, avg=True)
@@ -130,26 +122,20 @@ def run(wks: pygsheets.Worksheet):
     async def piano(message: commands.Context):
         await piano_system(bot, message)
 
-    open('discord-payment-bot.json', 'w').close()
-    bot.run(os.getenv('BOT_KEY'))
+    bot.run(BOT_KEY)
+    open(SERVICE_ACCOUNT_FILE, 'w').close()  # Empty credential file -> Google Docs access error
 
 
 if __name__ == '__main__':
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
 
-    # always add google sheet credentials to the json file
-    gc_list = ["type", "project_id", "private_key_id", "private_key", "client_email", "client_id", "auth_uri",
-               "token_uri",
-               "auth_provider_x509_cert_url", "client_x509_cert_url", "universe_domain"]
-    gc_dict = {key: os.getenv(key.upper()) for key in gc_list}
-    gc_dict['private_key'] = gc_dict['private_key'].replace('\\n', '\n')
-    with open('discord-payment-bot.json', 'w') as json_file:
-        json.dump(gc_dict, json_file, indent=2)
+    with open(SERVICE_ACCOUNT_FILE, 'w') as json_file:
+        json.dump(GOOGLE_CRED, json_file, indent=2)
 
     # Link to the Google Sheet
-    gc = pygsheets.authorize(service_file='discord-payment-bot.json')
-    sheet = gc.open_by_url(os.getenv('RECORD_SHEET_URL'))
+    gc = pygsheets.authorize(service_file=SERVICE_ACCOUNT_FILE)
+    sheet = gc.open_by_url(RECORD_SHEET_URL)
     record_wks = sheet.worksheet_by_title('Records')
 
     run(record_wks)

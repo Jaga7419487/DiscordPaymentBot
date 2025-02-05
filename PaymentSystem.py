@@ -1,16 +1,72 @@
-import os
 import time
 
 import pandas as pd
 import pygsheets
 import requests
 from discord.ext import commands
-from dotenv import load_dotenv
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
 from PaymentSystemUI import InputView, UndoView, is_valid_amount, amt_parser
 from constants import *
 
-load_dotenv()
+
+def get_document_content(document_id, n=-1) -> str:
+    """
+    Returns the content of a Google Document.
+    If n == -1, returns all the lines.
+    Otherwise, returns the last n lines.
+    Ignores empty lines/spaces. If the document is empty, returns 'No content'.
+    """
+    credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    docs_service = build('docs', 'v1', credentials=credentials)
+    document = docs_service.documents().get(documentId=document_id).execute()
+
+    # Extract the full text content
+    content = ''
+    for element in document.get('body', {}).get('content', []):
+        paragraph = element.get('paragraph')
+        if paragraph:
+            for text_run in paragraph.get('elements', []):
+                text = text_run.get('textRun', {}).get('content', '')
+                content += text
+
+    # Remove empty lines or spaces
+    lines = [line.strip() for line in content.split("\n")]
+
+    # If the document is empty
+    if not lines:
+        return "No content"
+
+    return '\n'.join(lines if n < 0 else lines[-n-2:])
+
+
+def write_doc(document_id, text_to_append):
+    """
+    Appends text to the end of a Google Document.
+    """
+    credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    docs_service = build('docs', 'v1', credentials=credentials)
+    document = docs_service.documents().get(documentId=document_id).execute()
+    end_index = document.get('body', {}).get('content', [])[-1].get('endIndex', 1)
+
+    # Create the request to append text at the end index
+    doc_requests = [
+        {
+            "insertText": {
+                "location": {
+                    "index": end_index - 1  # Subtract 1 to avoid appending after the implicit newline
+                },
+                "text": text_to_append
+            }
+        }
+    ]
+
+    # Execute the batchUpdate with the request
+    docs_service.documents().batchUpdate(
+        documentId=document_id,
+        body={"requests": doc_requests}
+    ).execute()
 
 
 def payment_record_to_dict(wks: pygsheets.Worksheet) -> dict:
@@ -28,33 +84,11 @@ def write_payment_record(wks: pygsheets.Worksheet, record: dict) -> None:
 
 
 def write_log(message: str) -> None:
-    with open(LOG_FILE, 'a', encoding="utf8") as file:
-        file.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
+    write_doc(LOG_DOC_ID, f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
 
 
 def show_log(num: int = -1) -> str:
-    log_content = ""
-    log_lines = []
-
-    with open(LOG_FILE, 'r', encoding='utf8') as file:
-        show_num = num if num > 1 else DEFAULT_LOG_SHOW_NUMBER
-        for line in file:
-            log_lines.append(line)
-        for line in log_lines[-min(show_num, len(log_lines)):]:
-            if log_content == "":
-                if line != "\n":
-                    log_content = line
-            else:
-                log_content += line
-    return log_content if log_content else "No log found"
-
-
-def read_last_log() -> list[str]:
-    content = ""
-    with open(LOG_FILE, 'r', encoding='utf8') as file:
-        for line in file:
-            content = line
-    return content.split()
+    return get_document_content(LOG_DOC_ID, num)
 
 
 def payment_record(wks: pygsheets.Worksheet) -> str:
@@ -62,7 +96,7 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
     count = 0.0
 
     record_dict = payment_record_to_dict(wks)
-    centralized_person_name = os.getenv('CENTRALIZED_PERSON')
+    centralized_person_name = CENTRALIZED_PERSON
     for name, amount in record_dict.items():
         count += amount
         if amount == 0:
@@ -87,7 +121,7 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
 def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
     try:
         record_dict = payment_record_to_dict(wks)
-        if name not in record_dict.keys() and name != os.getenv('CENTRALIZED_PERSON'):
+        if name not in record_dict.keys() and name != CENTRALIZED_PERSON:
             record_dict[name.lower()] = 0.0
             write_payment_record(wks, record_dict)
             write_log(f"{author}: Created new person: {name}")
@@ -113,15 +147,14 @@ def delete_ppl(target: str, author: str, wks: pygsheets.Worksheet) -> bool:
 def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: float) -> str:
     if person_to_pay == person_get_paid:
         return ""
-    if person_to_pay == os.getenv('CENTRALIZED_PERSON'):
+    if person_to_pay == CENTRALIZED_PERSON:
         target = person_get_paid
         add = True
-    elif person_get_paid == os.getenv('CENTRALIZED_PERSON'):
+    elif person_get_paid == CENTRALIZED_PERSON:
         target = person_to_pay
         add = False
     else:
-        write_log("function owe: centralized person not found")
-        return ""
+        raise Exception("Centralized person not found.")  # should not happen
 
     original = payment_data[target]
     current = round(original + amount if add else original - amount, ROUND_OFF_DP)
@@ -149,29 +182,29 @@ def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: fl
 
     # readability pro max!!!
     if p and c0:
-        return f"> -# {os.getenv('CENTRALIZED_PERSON')} needs to pay {target} ${original} -→ {target} doesn't need to pay\n"
+        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ {target} doesn't need to pay\n"
     elif not p and c0:
-        return f"> -# {target} needs to pay {os.getenv('CENTRALIZED_PERSON')} ${original} -→ {target} doesn't need to pay\n"
+        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ {target} doesn't need to pay\n"
     elif p0 and c:
-        return f"> -# {os.getenv('CENTRALIZED_PERSON')} needs to pay {target} ${current} (new record)\n"
+        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${current} (new record)\n"
     elif p0 and not c:
-        return f"> -# {target} needs to pay {os.getenv('CENTRALIZED_PERSON')} ${current} (new record)\n"
+        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${current} (new record)\n"
     elif p and c:
-        return f"> -# {os.getenv('CENTRALIZED_PERSON')} needs to pay {target}: ${original} -→ ${current}\n"
+        return f"> -# {CENTRALIZED_PERSON} needs to pay {target}: ${original} -→ ${current}\n"
     elif not p and c:
-        return f"> -# {target} needs to pay {os.getenv('CENTRALIZED_PERSON')} ${original} -→ " \
-               f"{os.getenv('CENTRALIZED_PERSON')} needs to pay {target} ${current}\n"
+        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ " \
+               f"{CENTRALIZED_PERSON} needs to pay {target} ${current}\n"
     elif p and not c:
-        return f"> -# {os.getenv('CENTRALIZED_PERSON')} needs to pay {target} ${original} -→ " \
-               f"{target} needs to pay {os.getenv('CENTRALIZED_PERSON')} ${current}\n"
+        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ " \
+               f"{target} needs to pay {CENTRALIZED_PERSON} ${current}\n"
     else:
-        return f"> -# {target} needs to pay {os.getenv('CENTRALIZED_PERSON')}: ${original} -→ ${current}\n"
+        return f"> -# {target} needs to pay {CENTRALIZED_PERSON}: ${original} -→ ${current}\n"
 
 
 def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pygsheets.Worksheet) -> str:
     update = ""
     payment_data = payment_record_to_dict(wks)
-    centralized_person = os.getenv('CENTRALIZED_PERSON')
+    centralized_person = CENTRALIZED_PERSON
 
     # main logic
     try:
@@ -198,21 +231,18 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
     return update
 
 
-def do_backup(wks: pygsheets.Worksheet) -> None:
-    with open(BACKUP_FILE, 'w', encoding='utf8') as bkup_file:
-        bkup_file.write(f"[{time.strftime('%Y-%m-%d %H:%M')}]\n")
-        for name, amount in payment_record_to_dict(wks).items():
-            bkup_file.write(f"{name} {amount}\n")
-        bkup_file.write("\n")
-    write_log(f"-------------------------------------Backup-------------------------------------")
+def do_backup(wks: pygsheets.Worksheet) -> str:
+    backup_text = f"[{time.strftime('%Y-%m-%d %H:%M')}]\n"
+    for name, amount in payment_record_to_dict(wks).items():
+        backup_text += f"{name} {amount}\n"
+    backup_text += "\n"
+    write_doc(BACKUP_DOC_ID, backup_text)
+    write_log("-------------------------------------Backup-------------------------------------")
+    return backup_text
 
 
 def show_backup() -> str:
-    content = ""
-    with open(BACKUP_FILE, 'r', encoding='utf8') as file:
-        for line in file:
-            content += line
-    return content
+    return get_document_content(BACKUP_DOC_ID)
 
 
 def parse_optional_args(args: list[str]) -> tuple[bool, bool, [str]] or False:
@@ -240,7 +270,7 @@ def exchange_currency(from_cur: str, amount: str) -> tuple[float, float]:
     :return: tuple of converted amount and exchange rate
     """
     to_cur = 'HKD'
-    url = f"https://marketdata.tradermade.com/api/v1/convert?api_key={os.getenv('TRADER_MADE_API_KEY')}&" \
+    url = f"https://marketdata.tradermade.com/api/v1/convert?api_key={TRADER_MADE_API_KEY}&" \
           f"from={from_cur}&to={to_cur}&amount={amount}"
     response = requests.get(url)
     data = response.json()
@@ -401,8 +431,8 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)
 
-    log_channel = bot.get_channel(int(os.getenv('LOG_CHANNEL_ID')))
-    payment_data = {os.getenv('CENTRALIZED_PERSON'): -1}
+    log_channel = bot.get_channel(LOG_CHANNEL_ID)
+    payment_data = {CENTRALIZED_PERSON: -1}
     payment_data.update(payment_record_to_dict(wks))
 
     # for each_pm in message.message.content.split('\n'):

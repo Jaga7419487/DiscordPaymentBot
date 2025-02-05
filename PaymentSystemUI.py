@@ -1,6 +1,7 @@
 import discord
 
-from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CURRENCY
+from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CURRENCY, VALID_CHARS_SET
+
 
 # class CurrencyButton(discord.ui.Button):
 #     def __init__(self, currency: str):
@@ -18,9 +19,6 @@ from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CU
 #         self.view.update_description()
 #         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
 #         await interaction.response.defer()
-
-
-VALID_CHARS_SET = set('0123456789+-*/.(（）)')
 
 
 def is_valid_amount(amt: str) -> bool:

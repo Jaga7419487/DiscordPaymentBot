@@ -1,6 +1,21 @@
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# bot
+BOT_KEY = os.getenv('BOT_KEY')
+PAYMENT_CHANNEL_ID = int(os.getenv('PAYMENT_CHANNEL_ID'))
+LOG_CHANNEL_ID = int(os.getenv('LOG_CHANNEL_ID'))
+CENTRALIZED_PERSON = os.getenv('CENTRALIZED_PERSON')
+TRADER_MADE_API_KEY = os.getenv('TRADER_MADE_API_KEY')
+LOG_DOC_ID = os.getenv('LOG_DOC_ID')
+BACKUP_DOC_ID = os.getenv('BACKUP_DOC_ID')
 COMMAND = "pm"
 BOT_STATUS = "->> !info"
 UNIFIED_CURRENCY = "HKD"
+VALID_CHARS_SET = set('0123456789+-*/.(（）)')
 SUPPORTED_CURRENCY = {
     "AED": "UAE Dirham",
     "AOA": "Angolan Kwanza",
@@ -68,16 +83,30 @@ USER_MAPPING = {
     'andes': '621959791698247680',
 }
 
+# digits
 ROUND_OFF_DP = 3
 LOG_SHOW_NUMBER = 10
-DEFAULT_LOG_SHOW_NUMBER = 40
+LONG_LOG_SHOW_NUMBER = 20
 MENU_TIMEOUT = 3600.0
 UNDO_TIMEOUT = 3600.0
 
-# PAYMENT_RECORD_FILE = "payment_record.txt"  # Deprecated
-LOG_FILE = "log.txt"
-BACKUP_FILE = "deprecated/backup_record.txt"
-CURRENCY_FILE = "latest_currency.txt"
+# google
+SCOPES = ['https://www.googleapis.com/auth/documents']
+SERVICE_ACCOUNT_FILE = 'discord-payment-bot.json'
+GOOGLE_CRED = {
+    "type": "service_account",
+    "project_id": os.getenv('PROJECT_ID'),
+    "private_key_id": os.getenv('PRIVATE_KEY_ID'),
+    "private_key": os.getenv('PRIVATE_KEY').replace('\\n', '\n'),
+    "client_email": os.getenv('CLIENT_EMAIL'),
+    "client_id": os.getenv('CLIENT_ID'),
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": os.getenv('CLIENT_X509_CERT_URL'),
+    "universe_domain": "googleapis.com"
+}
+RECORD_SHEET_URL = os.getenv('RECORD_SHEET_URL')
 
 BOT_DESCRIPTION = f"""
 # Discord Payment Bot
@@ -97,7 +126,7 @@ BOT_DESCRIPTION = f"""
 `!create [name]`: Creates a new user with a name (e.g. `!create personA`)
 `!delete [name]`: Deletes a user if he has no debts (e.g. `!delete personA`)
 `!log`: Shows the {LOG_SHOW_NUMBER} latest payment record inputs
-`!logall`: Shows the {DEFAULT_LOG_SHOW_NUMBER} latest payment record inputs
+`!logall`: Shows the {LONG_LOG_SHOW_NUMBER} latest payment record inputs
 `!currencies`: Shows all the supported currencies
 `!backup`: Backups the current payment record in a separate file
 `!showbackup`: Shows the backup records
@@ -118,3 +147,11 @@ BOT_DESCRIPTION = f"""
 """
 
 # `!piano`: Book piano room for specific date & time at 00:00
+
+"""
+Deprecated
+"""
+# PAYMENT_RECORD_FILE = "payment_record.txt"
+# LOG_FILE = "log.txt"
+# BACKUP_FILE = "deprecated/backup_record.txt"
+# CURRENCY_FILE = "latest_currency.txt"
