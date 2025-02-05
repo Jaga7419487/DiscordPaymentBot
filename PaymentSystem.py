@@ -46,7 +46,7 @@ def show_log(num: int = -1) -> str:
                     log_content = line
             else:
                 log_content += line
-    return log_content
+    return log_content if log_content else "No log found"
 
 
 def read_last_log() -> list[str]:
