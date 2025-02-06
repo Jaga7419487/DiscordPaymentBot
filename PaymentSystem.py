@@ -1,4 +1,5 @@
 import time
+from typing import List, Tuple, Union
 
 import pandas as pd
 import pygsheets
@@ -38,7 +39,7 @@ def get_document_content(document_id, n=-1) -> str:
     if not lines:
         return "No content"
 
-    return '\n'.join(lines if n < 0 else lines[-n-2:])
+    return '\n'.join(lines if n < 0 else lines[-n - 2:])
 
 
 def write_doc(document_id, text_to_append):
@@ -69,7 +70,7 @@ def write_doc(document_id, text_to_append):
     ).execute()
 
 
-def payment_record_to_dict(wks: pygsheets.Worksheet) -> dict:
+def wks_payment_to_dict(wks: pygsheets.Worksheet) -> dict:
     df = wks.get_as_df()
     record_dict = df.set_index(df['Name'].astype(str))['Amount'].to_dict()
     if '' in record_dict.keys():
@@ -77,7 +78,7 @@ def payment_record_to_dict(wks: pygsheets.Worksheet) -> dict:
     return record_dict
 
 
-def write_payment_record(wks: pygsheets.Worksheet, record: dict) -> None:
+def write_payment_to_wks(wks: pygsheets.Worksheet, record: dict) -> None:
     wks.clear()
     df = pd.DataFrame(list(record.items()), columns=['Name', 'Amount'])
     wks.set_dataframe(df, 'A1')
@@ -95,7 +96,7 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
     zero = take_money = need_pay = ""
     count = 0.0
 
-    record_dict = payment_record_to_dict(wks)
+    record_dict = wks_payment_to_dict(wks)
     centralized_person_name = CENTRALIZED_PERSON
     for name, amount in record_dict.items():
         count += amount
@@ -120,10 +121,10 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
 
 def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
     try:
-        record_dict = payment_record_to_dict(wks)
+        record_dict = wks_payment_to_dict(wks)
         if name not in record_dict.keys() and name != CENTRALIZED_PERSON:
             record_dict[name.lower()] = 0.0
-            write_payment_record(wks, record_dict)
+            write_payment_to_wks(wks, record_dict)
             write_log(f"{author}: Created new person: {name}")
             return True
     except Exception as e:
@@ -133,10 +134,10 @@ def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
 
 def delete_ppl(target: str, author: str, wks: pygsheets.Worksheet) -> bool:
     try:
-        record_dict = payment_record_to_dict(wks)
+        record_dict = wks_payment_to_dict(wks)
         if target in record_dict.keys() and record_dict[target] == 0:
             del record_dict[target]
-            write_payment_record(wks, record_dict)
+            write_payment_to_wks(wks, record_dict)
             write_log(f"{author}: Deleted person: {target}")
             return True
     except Exception as e:
@@ -144,67 +145,69 @@ def delete_ppl(target: str, author: str, wks: pygsheets.Worksheet) -> bool:
     return False
 
 
-def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: float) -> str:
-    if person_to_pay == person_get_paid:
-        return ""
-    if person_to_pay == CENTRALIZED_PERSON:
-        target = person_get_paid
-        add = True
-    elif person_get_paid == CENTRALIZED_PERSON:
-        target = person_to_pay
-        add = False
-    else:
-        raise Exception("Centralized person not found.")  # should not happen
-
-    original = payment_data[target]
-    current = round(original + amount if add else original - amount, ROUND_OFF_DP)
-    payment_data[target] = current
-
-    p = original > 0
-    p0 = original == 0
-    c = current > 0
-    c0 = current == 0
-
-    original = abs(original)
-    current = abs(current)
-
-    """
-        p 0: jaga pay XXX __ -> XXX don't pay
-        !p 0: XXX pay jaga __ -> XXX don't pay
-        0 c: jaga pay XXX __ (new record)
-        0 !c: XXX pay jaga __ (new record)
-
-        p c: jaga pay XXX: __ -> __
-        !p c: XXX pay jaga __ -> jaga pay XXX __
-        p !c: jaga pay XXX __ -> XXX pay jaga __
-        !p !c: XXX pay jaga: __ -> __
-    """
-
-    # readability pro max!!!
-    if p and c0:
-        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ {target} doesn't need to pay\n"
-    elif not p and c0:
-        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ {target} doesn't need to pay\n"
-    elif p0 and c:
-        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${current} (new record)\n"
-    elif p0 and not c:
-        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${current} (new record)\n"
-    elif p and c:
-        return f"> -# {CENTRALIZED_PERSON} needs to pay {target}: ${original} -→ ${current}\n"
-    elif not p and c:
-        return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ " \
-               f"{CENTRALIZED_PERSON} needs to pay {target} ${current}\n"
-    elif p and not c:
-        return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ " \
-               f"{target} needs to pay {CENTRALIZED_PERSON} ${current}\n"
-    else:
-        return f"> -# {target} needs to pay {CENTRALIZED_PERSON}: ${original} -→ ${current}\n"
-
-
 def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pygsheets.Worksheet) -> str:
+    def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: float) -> str:
+        if person_to_pay == person_get_paid:
+            return ""
+        if person_to_pay == CENTRALIZED_PERSON:
+            target = person_get_paid
+            add = True
+        elif person_get_paid == CENTRALIZED_PERSON:
+            target = person_to_pay
+            add = False
+        else:
+            raise Exception("Centralized person not found.")  # should not happen
+
+        original = payment_data[target]
+        current = round(original + amount if add else original - amount, ROUND_OFF_DP)
+        payment_data[target] = current
+
+        p = original > 0
+        p0 = original == 0
+        c = current > 0
+        c0 = current == 0
+
+        original = abs(original)
+        current = abs(current)
+
+        """
+            p 0: jaga pay XXX __ -> XXX don't pay
+            !p 0: XXX pay jaga __ -> XXX don't pay
+            0 c: jaga pay XXX __ (new record)
+            0 !c: XXX pay jaga __ (new record)
+
+            p c: jaga pay XXX: __ -> __
+            !p c: XXX pay jaga __ -> jaga pay XXX __
+            p !c: jaga pay XXX __ -> XXX pay jaga __
+            !p !c: XXX pay jaga: __ -> __
+        """
+
+        # readability pro max!!!
+        if p and c0:
+            return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ {target} doesn't need to pay\n"
+        elif not p and c0:
+            return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ {target} doesn't need to pay\n"
+        elif p0 and c:
+            return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${current} (new record)\n"
+        elif p0 and not c:
+            return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${current} (new record)\n"
+        elif p and c:
+            return f"> -# {CENTRALIZED_PERSON} needs to pay {target}: ${original} -→ ${current}\n"
+        elif not p and c:
+            return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ " \
+                   f"{CENTRALIZED_PERSON} needs to pay {target} ${current}\n"
+        elif p and not c:
+            return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ " \
+                   f"{target} needs to pay {CENTRALIZED_PERSON} ${current}\n"
+        else:
+            return f"> -# {target} needs to pay {CENTRALIZED_PERSON}: ${original} -→ ${current}\n"
+
     update = ""
-    payment_data = payment_record_to_dict(wks)
+    payment_data = wks_payment_to_dict(wks)
     centralized_person = CENTRALIZED_PERSON
+
+    print("Payment handling started")
+    pm_start = time.time()
 
     # main logic
     try:
@@ -227,13 +230,16 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
         print("Person not found.")
         return ""
 
-    write_payment_record(wks, payment_data)
+    write_payment_to_wks(wks, payment_data)
+
+    print(f"Payment handling done in {time.time() - pm_start:.2f}s")
+
     return update
 
 
 def do_backup(wks: pygsheets.Worksheet) -> str:
     backup_text = f"[{time.strftime('%Y-%m-%d %H:%M')}]\n"
-    for name, amount in payment_record_to_dict(wks).items():
+    for name, amount in wks_payment_to_dict(wks).items():
         backup_text += f"{name} {amount}\n"
     backup_text += "\n"
     write_doc(BACKUP_DOC_ID, backup_text)
@@ -245,42 +251,43 @@ def show_backup() -> str:
     return get_document_content(BACKUP_DOC_ID)
 
 
-def parse_optional_args(args: list[str]) -> tuple[bool, bool, [str]] or False:
-    service_charge = False
-    currency = UNIFIED_CURRENCY
-    reason = ""
-
-    for i in range(len(args)):
-        if i <= 1 and args[i].startswith('-'):
-            if args[i][1:].upper() not in SUPPORTED_CURRENCY.keys():
-                return False
-            currency = args[i][1:].upper()
-        elif args[i] == "sc":
-            service_charge = True
-        else:
-            reason += args[i] + " "
-
-    return service_charge, currency, reason[:-1]
-
-
-def exchange_currency(from_cur: str, amount: str) -> tuple[float, float]:
-    """
-    :param from_cur: base currency to convert from
-    :param amount: amount to convert
-    :return: tuple of converted amount and exchange rate
-    """
-    to_cur = 'HKD'
-    url = f"https://marketdata.tradermade.com/api/v1/convert?api_key={TRADER_MADE_API_KEY}&" \
-          f"from={from_cur}&to={to_cur}&amount={amount}"
-    response = requests.get(url)
-    data = response.json()
-    return data['total'], data['quote']
-
-
 async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygsheets.Worksheet, avg=False):
-    async def single_pm(prev: [str or bool] = None):
+    def parse_optional_args(args: List[str]) -> Union[Tuple[bool, str, str], bool]:
+        service_charge = False
+        currency: str = UNIFIED_CURRENCY
+        reason = ''
+
+        for i in range(len(args)):
+            if i <= 1 and args[i].startswith('-'):
+                if args[i][1:].upper() not in SUPPORTED_CURRENCY.keys():
+                    return False
+                currency = args[i][1:].upper()
+            elif args[i] == "sc":
+                service_charge = True
+            else:
+                reason += args[i] + " "
+
+        return service_charge, currency, reason[:-1]
+
+    def exchange_currency(from_cur: str, amount: str) -> tuple[float, float]:
+        """
+        :param from_cur: base currency to convert from
+        :param amount: amount to convert
+        :return: tuple of converted amount and exchange rate
+        """
+        to_cur = 'HKD'
+        url = f"https://marketdata.tradermade.com/api/v1/convert?api_key={TRADER_MADE_API_KEY}&" \
+              f"from={from_cur}&to={to_cur}&amount={amount}"
+        response = requests.get(url)
+        data = response.json()
+        return data['total'], data['quote']
+
+    async def single_pm(prev_ptp: str = '', prev_op: str = '', prev_pgp: str = '', prev_amt: str = '',
+                        prev_sc: bool = False, prev_cur: str = '', prev_reason: str = '') -> None:
         menu = None
         msg: list[str] = message.message.content.lower().split()
+
+        start_time = time.time()
 
         if len(msg) >= 5:
             # Command line UI: e.g. !pm p1,p2 owe p3,p4 100 -CNY (reason)
@@ -321,16 +328,6 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
                 return
             amount = str(amount)
 
-            # try:
-            #     amount = float(msg[4])
-            #     if amount == 0.0:
-            #         await message.channel.send("**Invalid amount: amount cannot be zero!**")
-            #         return
-            #     amount = str(amount)
-            # except ValueError:
-            #     await message.channel.send("**Invalid input for amount!**")
-            #     return
-
             parse_result = parse_optional_args(msg[5:])
             if not parse_result:
                 await message.channel.send("**Invalid currency!**")
@@ -345,8 +342,9 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             # Graphic UI
             cmd_input = False
 
-            menu = InputView(payment_data, prev[0], prev[1], prev[2], prev[3], prev[4], prev[5], prev[6]) \
-                if prev else InputView(payment_data)
+            # this is so shitty
+            menu = InputView(payment_data, prev_ptp, prev_op, prev_pgp, prev_amt, prev_sc, prev_cur, prev_reason) \
+                if prev_ptp else InputView(payment_data)
             menu.message = await message.send(view=menu)
             await menu.wait()
 
@@ -403,10 +401,16 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         user_mention = ' '.join([f'<@{USER_MAPPING.get(each)}>' for each in ppl_to_pay.split(',') + [ppl_get_paid]
                                  if USER_MAPPING.get(each)])
         user_mention = '\n-# ' + user_mention if user_mention else ''
-        write_log(log_content)
-        await log_channel.send(log_content)
+
         await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`{user_mention}"
                                    f"\n> -# Updated records:\n{update}")
+        await log_channel.send(log_content)
+
+        print(f"Show result done: {time.time() - start_time:.2f}s")
+
+        write_log(log_content)
+
+        print(f"Write log done: {time.time() - start_time:.2f}s")
 
         undo_view = UndoView(not cmd_input)
         undo_view.message = await message.send(view=undo_view)
@@ -421,8 +425,8 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)
-            await single_pm(
-                [ppl_to_pay, operation_owe, ppl_get_paid, menu.amount_text, service_charge, currency, menu.reason])
+            await single_pm(ppl_to_pay, operation_owe, ppl_get_paid, menu.amount_text, service_charge, currency,
+                            menu.reason)
         elif undo_view.undo:
             undo_update = "> -# Updated records:\n"
             undo_update += payment_handling(ppl_get_paid, ppl_to_pay, amount, wks)
@@ -433,7 +437,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
 
     log_channel = bot.get_channel(LOG_CHANNEL_ID)
     payment_data = {CENTRALIZED_PERSON: -1}
-    payment_data.update(payment_record_to_dict(wks))
+    payment_data.update(wks_payment_to_dict(wks))
 
     # for each_pm in message.message.content.split('\n'):
     #     if each_pm:

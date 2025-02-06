@@ -7,7 +7,6 @@ from discord.ext import commands
 from flask import Flask, send_from_directory
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
 from constants import *
-from deprecated.AutoPianoBooking import piano_system
 
 app = Flask(__name__)
 greet_message = False
@@ -118,9 +117,9 @@ def run(wks: pygsheets.Worksheet):
             return
         await payment_system(bot, message, wks, avg=True)
 
-    @bot.command(hidden=True, disabled=True)
-    async def piano(message: commands.Context):
-        await piano_system(bot, message)
+    # @bot.command(hidden=True, disabled=True)
+    # async def piano(message: commands.Context):
+    #     await piano_system(bot, message)
 
     bot.run(BOT_KEY)
     open(SERVICE_ACCOUNT_FILE, 'w').close()  # Empty credential file -> Google Docs access error

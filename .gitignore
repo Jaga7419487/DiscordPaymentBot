@@ -5,6 +5,7 @@ venv/
 
 .env
 
+deprecated/
 keys/
 test/
 botInfo_old.py
