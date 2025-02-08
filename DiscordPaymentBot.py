@@ -8,11 +8,11 @@ from discord.ext import commands
 from flask import Flask, send_from_directory
 
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system, \
-    wks_to_dict, payment_to_wks
+    wks_to_dict, payment_to_wks, log_worker, log_queue
 from constants import *
 
 app = Flask(__name__)
-greet_message = False
+stop_event = threading.Event()
 
 
 @app.route('/health_check.html')
@@ -37,9 +37,9 @@ def run(wks: pygsheets.Worksheet):
     @bot.event
     async def on_ready():
         print(f"Current logged in user --> {bot.user}")
-        if greet_message:
-            pm_channel = bot.get_channel(PAYMENT_CHANNEL_ID)
-            await pm_channel.send(f"## I am back!\n**Here is the payment record list:**\n{payment_record(wks)}")
+        # if greet_message:
+        #     pm_channel = bot.get_channel(PAYMENT_CHANNEL_ID)
+        #     await pm_channel.send(f"## I am back!\n**Here is the payment record list:**\n{payment_record(wks)}")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
 
     @bot.command(help="Show the bot information", brief="Bot information")
@@ -147,10 +147,11 @@ if __name__ == '__main__':
     with open(PAYMENT_RECORD_FILE, 'w') as json_file:
         json.dump(wks_to_dict(record_wks), json_file, indent=2)
 
-    # Start the scheduler thread
-    stop_event = threading.Event()
+    # Start other threads
     update_scheduler = threading.Thread(target=schedule_payment_updates, args=(record_wks, stop_event), daemon=True)
     update_scheduler.start()
+    log_thread = threading.Thread(target=log_worker, args=(stop_event,), daemon=True)
+    log_thread.start()
 
     try:
         run(record_wks)
@@ -159,6 +160,8 @@ if __name__ == '__main__':
     finally:
         stop_event.set()
         update_scheduler.join()
+        log_queue.put(None)
+        log_queue.join()
         payment_to_wks(record_wks)
         open(SERVICE_ACCOUNT_FILE, 'w').close()  # Empty credential file -> Google Docs access error
         open(PAYMENT_RECORD_FILE, 'w').close()

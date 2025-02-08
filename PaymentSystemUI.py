@@ -3,24 +3,6 @@ import discord
 from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CURRENCY, VALID_CHARS_SET
 
 
-# class CurrencyButton(discord.ui.Button):
-#     def __init__(self, currency: str):
-#         super().__init__(
-#             label=currency,
-#             custom_id="currency_btn",
-#             emoji='💱',
-#             row=0,
-#             disabled=False
-#         )
-#
-#     async def callback(self, interaction: discord.Interaction):
-#         self.view.currency = switch_currency(self.view.currency)
-#         self.view.currency_btn.label = switch_currency(self.view.currency)
-#         self.view.update_description()
-#         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
-#         await interaction.response.defer()
-
-
 def is_valid_amount(amt: str) -> bool:
     return VALID_CHARS_SET.issuperset(amt)
 
