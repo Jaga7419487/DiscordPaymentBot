@@ -1,3 +1,4 @@
+import json
 import time
 from typing import List, Tuple, Union
 
@@ -70,7 +71,7 @@ def write_doc(document_id, text_to_append):
     ).execute()
 
 
-def wks_payment_to_dict(wks: pygsheets.Worksheet) -> dict:
+def wks_to_dict(wks: pygsheets.Worksheet) -> dict:
     df = wks.get_as_df()
     record_dict = df.set_index(df['Name'].astype(str))['Amount'].to_dict()
     if '' in record_dict.keys():
@@ -78,10 +79,21 @@ def wks_payment_to_dict(wks: pygsheets.Worksheet) -> dict:
     return record_dict
 
 
-def write_payment_to_wks(wks: pygsheets.Worksheet, record: dict) -> None:
+def payment_to_wks(wks: pygsheets.Worksheet, record: dict) -> None:
     wks.clear()
     df = pd.DataFrame(list(record.items()), columns=['Name', 'Amount'])
     wks.set_dataframe(df, 'A1')
+
+
+def payment_to_json(record: dict) -> None:
+    with open(PAYMENT_RECORD_FILE, 'w') as json_file:
+        json.dump(record, json_file, indent=2)
+
+
+def read_payment_from_json() -> dict:
+    with open(PAYMENT_RECORD_FILE, 'r') as file:
+        data = json.load(file)
+    return data
 
 
 def write_log(message: str) -> None:
@@ -96,7 +108,7 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
     zero = take_money = need_pay = ""
     count = 0.0
 
-    record_dict = wks_payment_to_dict(wks)
+    record_dict = wks_to_dict(wks)
     centralized_person_name = CENTRALIZED_PERSON
     for name, amount in record_dict.items():
         count += amount
@@ -121,10 +133,10 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
 
 def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
     try:
-        record_dict = wks_payment_to_dict(wks)
+        record_dict = wks_to_dict(wks)
         if name not in record_dict.keys() and name != CENTRALIZED_PERSON:
             record_dict[name.lower()] = 0.0
-            write_payment_to_wks(wks, record_dict)
+            payment_to_wks(wks, record_dict)
             write_log(f"{author}: Created new person: {name}")
             return True
     except Exception as e:
@@ -134,10 +146,10 @@ def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
 
 def delete_ppl(target: str, author: str, wks: pygsheets.Worksheet) -> bool:
     try:
-        record_dict = wks_payment_to_dict(wks)
+        record_dict = wks_to_dict(wks)
         if target in record_dict.keys() and record_dict[target] == 0:
             del record_dict[target]
-            write_payment_to_wks(wks, record_dict)
+            payment_to_wks(wks, record_dict)
             write_log(f"{author}: Deleted person: {target}")
             return True
     except Exception as e:
@@ -146,7 +158,7 @@ def delete_ppl(target: str, author: str, wks: pygsheets.Worksheet) -> bool:
 
 
 def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pygsheets.Worksheet) -> str:
-    def owe(payment_data: dict, person_to_pay: str, person_get_paid: str, amount: float) -> str:
+    def owe(person_to_pay: str, person_get_paid: str, amount: float) -> str:
         if person_to_pay == person_get_paid:
             return ""
         if person_to_pay == CENTRALIZED_PERSON:
@@ -203,11 +215,8 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
             return f"> -# {target} needs to pay {CENTRALIZED_PERSON}: ${original} -→ ${current}\n"
 
     update = ""
-    payment_data = wks_payment_to_dict(wks)
+    payment_data = wks_to_dict(wks)
     centralized_person = CENTRALIZED_PERSON
-
-    print("Payment handling started")
-    pm_start = time.time()
 
     # main logic
     try:
@@ -216,12 +225,12 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
         for each_to_pay in pay_list:
             for each_get_paid in paid_list:
                 if each_get_paid == centralized_person:
-                    update += owe(payment_data, each_to_pay, centralized_person, amount)
+                    update += owe(each_to_pay, centralized_person, amount)
                 elif each_to_pay == centralized_person:
-                    update += owe(payment_data, centralized_person, each_get_paid, amount)
+                    update += owe(centralized_person, each_get_paid, amount)
                 else:
-                    update += owe(payment_data, each_to_pay, centralized_person, amount) + \
-                              owe(payment_data, centralized_person, each_get_paid, amount)
+                    update += owe(each_to_pay, centralized_person, amount) + \
+                              owe(centralized_person, each_get_paid, amount)
                 update += "> \n" if len(paid_list) > 1 else ""
             update += "> \n" if len(pay_list) > 1 else ""
         if ">" in update[-3:]:
@@ -230,16 +239,13 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
         print("Person not found.")
         return ""
 
-    write_payment_to_wks(wks, payment_data)
-
-    print(f"Payment handling done in {time.time() - pm_start:.2f}s")
-
+    payment_to_wks(wks, payment_data)
     return update
 
 
 def do_backup(wks: pygsheets.Worksheet) -> str:
     backup_text = f"[{time.strftime('%Y-%m-%d %H:%M')}]\n"
-    for name, amount in wks_payment_to_dict(wks).items():
+    for name, amount in wks_to_dict(wks).items():
         backup_text += f"{name} {amount}\n"
     backup_text += "\n"
     write_doc(BACKUP_DOC_ID, backup_text)
@@ -269,130 +275,135 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
 
         return service_charge, currency, reason[:-1]
 
-    def exchange_currency(from_cur: str, amount: str) -> tuple[float, float]:
+    def exchange_currency(from_cur: str, amount: float) -> tuple[float, float]:
         """
         :param from_cur: base currency to convert from
         :param amount: amount to convert
         :return: tuple of converted amount and exchange rate
         """
-        to_cur = 'HKD'
+        if from_cur == UNIFIED_CURRENCY:
+            return amount, 1.0
+        to_cur = UNIFIED_CURRENCY
         url = f"https://marketdata.tradermade.com/api/v1/convert?api_key={TRADER_MADE_API_KEY}&" \
               f"from={from_cur}&to={to_cur}&amount={amount}"
         response = requests.get(url)
         data = response.json()
         return data['total'], data['quote']
 
-    async def single_pm(prev_ptp: str = '', prev_op: str = '', prev_pgp: str = '', prev_amt: str = '',
-                        prev_sc: bool = False, prev_cur: str = '', prev_reason: str = '') -> None:
-        menu = None
-        msg: list[str] = message.message.content.lower().split()
+    def parse_cmd_input(msg: list[str]):
+        """ e.g. !pm p1,p2 owe p3 100 -cny sc rea son 123 """
 
-        start_time = time.time()
+        if len(msg) < 5:
+            return ''
 
-        if len(msg) >= 5:
-            # Command line UI: e.g. !pm p1,p2 owe p3,p4 100 -CNY (reason)
-            cmd_input = True
+        ppl_to_pay = msg[1].lower()
+        if any(ppl not in payment_list for ppl in ppl_to_pay.split(',')):
+            return "**Invalid input for provider!**"
 
-            ppl_to_pay: str = msg[1].lower()
-            for ppl in ppl_to_pay.split(','):
-                if ppl not in payment_data.keys().__str__().lower():
-                    await message.channel.send("**Invalid input for provider!**")
-                    return
+        operation = msg[2].lower()
+        if operation not in ["owe", "payback"]:
+            return "**Invalid payment operation!**"
+        operation_owe = operation == "owe"
 
-            operation: str = msg[2].lower()
-            if operation not in ["owe", "payback"]:
-                await message.channel.send("**Invalid payment operation!**")
-                return
-            else:
-                operation_owe = operation == "owe"
+        ppl_get_paid = msg[3].lower()
+        if ppl_get_paid not in payment_list:
+            return "**Invalid input for receiver!**"
 
-            ppl_get_paid: str = msg[3].lower()
-            if ppl_get_paid not in payment_data.keys().__str__().lower():
-                await message.channel.send("**Invalid input for receiver!**")
-                return
+        if not is_valid_amount(msg[4]):
+            return "**Invalid amount!**"
+        try:
+            amount = eval(amt_parser(msg[4]))
+        except ZeroDivisionError:
+            return "**Invalid amount: Don't divide zero la...**"
+        except (ValueError, SyntaxError):
+            return "**What have you entered for the amount .-.**"
+        if amount == 0.0:
+            return "**Invalid amount: amount cannot be zero!**"
 
-            if is_valid_amount(msg[4]):
-                try:
-                    amount = eval(amt_parser(msg[4]))
-                except ZeroDivisionError:
-                    await message.channel.send("**Invalid amount: Don't divide zero la...**")
-                    return
-                except ValueError:
-                    await message.channel.send("**What have you entered for the amount .-.**")
-                    return
-            else:
-                await message.channel.send("**Invalid amount!**")
-                return
-            if amount == 0.0:
-                await message.channel.send("**Invalid amount: amount cannot be zero!**")
-                return
-            amount = str(amount)
+        parse_result = parse_optional_args(msg[5:])
+        if not parse_result:
+            return "**Invalid currency!**"
+        service_charge, currency, reason = parse_result
 
-            parse_result = parse_optional_args(msg[5:])
-            if not parse_result:
-                await message.channel.send("**Invalid currency!**")
-                return
-            service_charge, currency, reason = parse_result
+        if ppl_get_paid in ppl_to_pay.split(','):
+            return "**Invalid input: one cannot pay himself!**"
 
-            if ppl_get_paid in ppl_to_pay.split(','):
-                await message.channel.send("**Invalid input: one cannot pay himself!**")
-                return
+        return {
+            "ppl_to_pay": ppl_to_pay,
+            "operation_owe": operation_owe,
+            "ppl_get_paid": ppl_get_paid,
+            "amount": amount,
+            "service_charge": service_charge,
+            "currency": currency,
+            "reason": reason
+        }
 
+    async def parse_ui_input(prev_ptp, prev_op, prev_pgp, prev_amt, prev_sc, prev_cur, prev_reason):
+        menu = InputView(payment_list, prev_ptp, prev_op, prev_pgp, prev_amt, prev_sc, prev_cur, prev_reason) \
+            if prev_sc else InputView(payment_list)
+        menu.message = await message.send(view=menu)
+        await menu.wait()
+
+        if menu.cancelled:
+            return ''
+        if not menu.finished:
+            return "**> Input closed. You take too long!**"
+
+        return {
+            "ppl_to_pay": menu.pay_text,
+            "operation_owe": menu.owe,
+            "ppl_get_paid": menu.paid_text,
+            "amount": menu.amount_text,
+            "service_charge": menu.service_charge,
+            "currency": menu.currency if menu.currency else UNIFIED_CURRENCY,
+            "reason": menu.reason if menu.reason else ""
+        }
+
+    async def handle_payment(prev_ptp: str = '', prev_op: str = '', prev_pgp: str = '', prev_amt: str = '',
+                             prev_sc: bool = False, prev_cur: str = '', prev_reason: str = '') -> None:
+        msg = message.message.content.lower().split()
+        cmd_input = len(msg) >= 5
+
+        if cmd_input:
+            parsed_input = parse_cmd_input(msg)
         else:
-            # Graphic UI
-            cmd_input = False
+            parsed_input = await parse_ui_input(prev_ptp, prev_op, prev_pgp, prev_amt, prev_sc, prev_cur, prev_reason)
 
-            # this is so shitty
-            menu = InputView(payment_data, prev_ptp, prev_op, prev_pgp, prev_amt, prev_sc, prev_cur, prev_reason) \
-                if prev_ptp else InputView(payment_data)
-            menu.message = await message.send(view=menu)
-            await menu.wait()
+        if isinstance(parsed_input, str):
+            await message.channel.send(f"**{parsed_input}**")
+            return
 
-            ppl_to_pay = menu.pay_text
-            operation_owe = menu.owe
-            ppl_get_paid = menu.paid_text
-            amount = menu.amount_text
-            service_charge = menu.service_charge
-            currency = menu.currency if menu.currency else UNIFIED_CURRENCY
-            reason = menu.reason if menu.reason else ""
+        ppl_to_pay = parsed_input["ppl_to_pay"]
+        operation_owe = parsed_input["operation_owe"]
+        ppl_get_paid = parsed_input["ppl_get_paid"]
+        amount = parsed_input["amount"]
+        service_charge = parsed_input["service_charge"]
+        currency = parsed_input["currency"]
+        reason = parsed_input["reason"]
 
-            if menu.cancelled:
-                return
-            if not menu.finished:
-                await message.channel.send("**> Input closed. You take too long!**")
-                return
+        if currency not in SUPPORTED_CURRENCY.keys():
+            await message.channel.send(f"**Invalid currency: {currency}**")
+            return
 
-        """ amount: float"""
-        if currency != UNIFIED_CURRENCY and currency in SUPPORTED_CURRENCY.keys():
-            amount, exchange_rate = exchange_currency(currency, amount)
-        else:
-            amount = float(amount)
-            exchange_rate = 1.0
+        """ amount -> actual_amount: float"""
+        actual_amount, exchange_rate = exchange_currency(currency, amount)
+        actual_amount *= 1.1 if service_charge else 1
+        actual_amount /= (len(ppl_to_pay.split(',')) + 1) if avg else 1
+        actual_amount = round(actual_amount, ROUND_OFF_DP)
 
-        amount *= 1.1 if service_charge else 1
-        amount /= (len(ppl_to_pay.split(',')) + 1) if avg else 1
-        amount = round(amount, ROUND_OFF_DP)
-
-        if reason:
-            if reason[0] in '(（' and reason[-1] in '）)':
-                reason_text = ' ' + reason
-            else:
-                reason_text = ' (' + reason + ')'
-        else:
-            reason_text = ''
+        reason_text = (' ' + reason if reason[0] in '(（' and reason[-1] in '）)' else f' ({reason})') if reason else ''
         operation_text = "owe" if operation_owe else "pay back"
-        currency_text = f" [{currency}({exchange_rate}) -> HKD(1)]" if currency != UNIFIED_CURRENCY else ""
-        log_content = f"{message.author}: {ppl_to_pay} {operation_text} {ppl_get_paid} ${amount}" \
+        currency_text = f" [{currency}({exchange_rate}) -> {UNIFIED_CURRENCY}(1)]" \
+            if currency != UNIFIED_CURRENCY else ''
+        log_content = f"{message.author}: {ppl_to_pay} {operation_text} {ppl_get_paid} ${actual_amount}" \
                       f"{reason_text}{currency_text}"
 
         # switch pay & paid for pay back operation
         if not operation_owe:
-            temp = ppl_to_pay
-            ppl_to_pay = ppl_get_paid
-            ppl_get_paid = temp
+            ppl_to_pay, ppl_get_paid = ppl_get_paid, ppl_to_pay
 
         # perform the payment operation
-        update = payment_handling(ppl_to_pay, ppl_get_paid, amount, wks)
+        update = payment_handling(ppl_to_pay, ppl_get_paid, actual_amount, wks)
         if not update:
             await message.channel.send("**ERROR: Payment handling failed**")
             return
@@ -405,12 +416,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         await message.channel.send(f"__**Payment record successfully updated!**__\n`{log_content}`{user_mention}"
                                    f"\n> -# Updated records:\n{update}")
         await log_channel.send(log_content)
-
-        print(f"Show result done: {time.time() - start_time:.2f}s")
-
         write_log(log_content)
-
-        print(f"Write log done: {time.time() - start_time:.2f}s")
 
         undo_view = UndoView(not cmd_input)
         undo_view.message = await message.send(view=undo_view)
@@ -419,27 +425,22 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
 
         # handle undo operation
         if undo_view.undo and undo_view.edit:
-            undo_update = "> -# Updated records:\n"
-            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, amount, wks)
+            undo_update = "> -# Updated records:\n" + payment_handling(ppl_get_paid, ppl_to_pay, actual_amount, wks)
             await message.channel.send("**Undo has been executed for editing!**\n")
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)
-            await single_pm(ppl_to_pay, operation_owe, ppl_get_paid, menu.amount_text, service_charge, currency,
-                            menu.reason)
+            await handle_payment(ppl_to_pay, operation_owe, ppl_get_paid, amount, service_charge, currency,
+                                 reason)
         elif undo_view.undo:
-            undo_update = "> -# Updated records:\n"
-            undo_update += payment_handling(ppl_get_paid, ppl_to_pay, amount, wks)
+            undo_update = "> -# Updated records:\n" + payment_handling(ppl_get_paid, ppl_to_pay, actual_amount, wks)
             await message.channel.send("**Undo has been executed!**\n")
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             write_log(undo_log_content)
             await log_channel.send(undo_log_content)
 
     log_channel = bot.get_channel(LOG_CHANNEL_ID)
-    payment_data = {CENTRALIZED_PERSON: -1}
-    payment_data.update(wks_payment_to_dict(wks))
+    payment_data = wks_to_dict(wks)
+    payment_list = [CENTRALIZED_PERSON] + list(payment_data.keys())
 
-    # for each_pm in message.message.content.split('\n'):
-    #     if each_pm:
-    #         await single_pm()
-    await single_pm()
+    await handle_payment()

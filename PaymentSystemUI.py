@@ -29,9 +29,9 @@ def amt_parser(amt: str) -> str:
     return amt.replace('^', '**').replace('（', '(').replace('）', ')')
 
 
-def dict_to_options(record_dict: dict):
+def list_to_options(record: list):
     options = []
-    for each_name in record_dict.keys():
+    for each_name in record:
         options.append(discord.SelectOption(label=each_name, value=each_name))
     return options
 
@@ -78,8 +78,8 @@ class ServiceChargeButton(discord.ui.Button):
 
 
 class SelectPplToPay(discord.ui.Select):
-    def __init__(self, record: dict):
-        options = dict_to_options(record)
+    def __init__(self, record: list):
+        options = list_to_options(record)
         super().__init__(options=options, placeholder="Who needs to pay?", max_values=len(options), row=1)
 
     async def callback(self, interaction: discord.Interaction):
@@ -90,8 +90,8 @@ class SelectPplToPay(discord.ui.Select):
 
 
 class SelectPersonGetPaid(discord.ui.Select):
-    def __init__(self, record: dict):
-        options = dict_to_options(record)
+    def __init__(self, record: list):
+        options = list_to_options(record)
         super().__init__(options=options, placeholder="Who will get paid?", row=2)
 
     async def callback(self, interaction: discord.Interaction):
@@ -142,7 +142,9 @@ class AmountModal(discord.ui.Modal):
                 self.amount = str(eval(amt_parser(self.amount_textinput.value)))
             else:
                 await interaction.channel.send("Invalid amount!")
-        except ValueError:
+        except ZeroDivisionError:
+            await interaction.channel.send("**Invalid amount: Don't divide zero la...**")
+        except (ValueError, SyntaxError):
             await interaction.channel.send("**What have you entered for the amount .-.**")
 
         if self.reason_textinput.value and self.reason_textinput.value[0] in '(（' \
@@ -266,7 +268,7 @@ class EditButton(discord.ui.Button):
 
 
 class InputView(discord.ui.View):
-    def __init__(self, record: dict, pay_text="???", owe=True, paid_text="???", amount="0",
+    def __init__(self, record: list, pay_text="???", owe=True, paid_text="???", amount="0",
                  service_charge=False, currency=UNIFIED_CURRENCY, reason=""):
         super().__init__(timeout=MENU_TIMEOUT)
 
