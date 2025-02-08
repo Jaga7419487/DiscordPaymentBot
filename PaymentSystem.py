@@ -79,7 +79,10 @@ def wks_to_dict(wks: pygsheets.Worksheet) -> dict:
     return record_dict
 
 
-def payment_to_wks(wks: pygsheets.Worksheet, record: dict) -> None:
+def payment_to_wks(wks: pygsheets.Worksheet) -> None:
+    record = read_payment_from_json()
+    if not record:
+        return
     wks.clear()
     df = pd.DataFrame(list(record.items()), columns=['Name', 'Amount'])
     wks.set_dataframe(df, 'A1')
@@ -92,7 +95,11 @@ def payment_to_json(record: dict) -> None:
 
 def read_payment_from_json() -> dict:
     with open(PAYMENT_RECORD_FILE, 'r') as file:
-        data = json.load(file)
+        try:
+            data = json.load(file)
+        except json.JSONDecodeError:
+            print('Empty payment record file')
+            return {}
     return data
 
 
@@ -108,7 +115,7 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
     zero = take_money = need_pay = ""
     count = 0.0
 
-    record_dict = wks_to_dict(wks)
+    record_dict = read_payment_from_json()
     centralized_person_name = CENTRALIZED_PERSON
     for name, amount in record_dict.items():
         count += amount
@@ -133,10 +140,10 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
 
 def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
     try:
-        record_dict = wks_to_dict(wks)
+        record_dict = read_payment_from_json()
         if name not in record_dict.keys() and name != CENTRALIZED_PERSON:
             record_dict[name.lower()] = 0.0
-            payment_to_wks(wks, record_dict)
+            payment_to_json(record_dict)
             write_log(f"{author}: Created new person: {name}")
             return True
     except Exception as e:
@@ -146,10 +153,10 @@ def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
 
 def delete_ppl(target: str, author: str, wks: pygsheets.Worksheet) -> bool:
     try:
-        record_dict = wks_to_dict(wks)
+        record_dict = read_payment_from_json()
         if target in record_dict.keys() and record_dict[target] == 0:
             del record_dict[target]
-            payment_to_wks(wks, record_dict)
+            payment_to_json(record_dict)
             write_log(f"{author}: Deleted person: {target}")
             return True
     except Exception as e:
@@ -215,7 +222,7 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
             return f"> -# {target} needs to pay {CENTRALIZED_PERSON}: ${original} -→ ${current}\n"
 
     update = ""
-    payment_data = wks_to_dict(wks)
+    payment_data = read_payment_from_json()
     centralized_person = CENTRALIZED_PERSON
 
     # main logic
@@ -239,13 +246,13 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
         print("Person not found.")
         return ""
 
-    payment_to_wks(wks, payment_data)
+    payment_to_json(payment_data)
     return update
 
 
 def do_backup(wks: pygsheets.Worksheet) -> str:
     backup_text = f"[{time.strftime('%Y-%m-%d %H:%M')}]\n"
-    for name, amount in wks_to_dict(wks).items():
+    for name, amount in read_payment_from_json().items():
         backup_text += f"{name} {amount}\n"
     backup_text += "\n"
     write_doc(BACKUP_DOC_ID, backup_text)
@@ -440,7 +447,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             await log_channel.send(undo_log_content)
 
     log_channel = bot.get_channel(LOG_CHANNEL_ID)
-    payment_data = wks_to_dict(wks)
+    payment_data = read_payment_from_json()
     payment_list = [CENTRALIZED_PERSON] + list(payment_data.keys())
 
     await handle_payment()

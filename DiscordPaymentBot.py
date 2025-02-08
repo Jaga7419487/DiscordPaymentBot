@@ -1,11 +1,14 @@
 import json
 import threading
+import time
 
 import discord
 import pygsheets
 from discord.ext import commands
 from flask import Flask, send_from_directory
-from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system
+
+from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system, \
+    wks_to_dict, payment_to_wks
 from constants import *
 
 app = Flask(__name__)
@@ -19,6 +22,12 @@ def health_check():
 
 def run_flask():
     app.run(host='0.0.0.0', port=8000)
+
+
+def schedule_payment_updates(wks: pygsheets.Worksheet, stop_event: threading.Event):
+    while not stop_event.is_set():
+        time.sleep(UPDATE_INTERVAL)
+        payment_to_wks(wks)
 
 
 def run(wks: pygsheets.Worksheet):
@@ -122,7 +131,6 @@ def run(wks: pygsheets.Worksheet):
     #     await piano_system(bot, message)
 
     bot.run(BOT_KEY)
-    open(SERVICE_ACCOUNT_FILE, 'w').close()  # Empty credential file -> Google Docs access error
 
 
 if __name__ == '__main__':
@@ -136,5 +144,21 @@ if __name__ == '__main__':
     gc = pygsheets.authorize(service_file=SERVICE_ACCOUNT_FILE)
     sheet = gc.open_by_url(RECORD_SHEET_URL)
     record_wks = sheet.worksheet_by_title('Records')
+    with open(PAYMENT_RECORD_FILE, 'w') as json_file:
+        json.dump(wks_to_dict(record_wks), json_file, indent=2)
 
-    run(record_wks)
+    # Start the scheduler thread
+    stop_event = threading.Event()
+    update_scheduler = threading.Thread(target=schedule_payment_updates, args=(record_wks, stop_event), daemon=True)
+    update_scheduler.start()
+
+    try:
+        run(record_wks)
+    except Exception as e:
+        print(e)
+    finally:
+        stop_event.set()
+        update_scheduler.join()
+        payment_to_wks(record_wks)
+        open(SERVICE_ACCOUNT_FILE, 'w').close()  # Empty credential file -> Google Docs access error
+        open(PAYMENT_RECORD_FILE, 'w').close()

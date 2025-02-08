@@ -89,6 +89,7 @@ LOG_SHOW_NUMBER = 10
 LONG_LOG_SHOW_NUMBER = 20
 MENU_TIMEOUT = 3600.0
 UNDO_TIMEOUT = 3600.0
+UPDATE_INTERVAL = 10
 
 # google
 SCOPES = ['https://www.googleapis.com/auth/documents']
@@ -152,7 +153,3 @@ BOT_DESCRIPTION = f"""
 """
 Deprecated
 """
-# PAYMENT_RECORD_FILE = "payment_record.txt"
-# LOG_FILE = "log.txt"
-# BACKUP_FILE = "deprecated/backup_record.txt"
-# CURRENCY_FILE = "latest_currency.txt"
