@@ -16,6 +16,7 @@ from constants import *
 
 
 log_queue = queue.Queue()
+payment_queue = queue.Queue()
 
 
 def get_document_content(document_id, n=-1) -> str:
@@ -78,6 +79,8 @@ def write_doc(document_id, text_to_append):
 
 def wks_to_dict(wks: pygsheets.Worksheet) -> dict:
     df = wks.get_as_df()
+    if df.empty:
+        return {}
     record_dict = df.set_index(df['Name'].astype(str))['Amount'].to_dict()
     if '' in record_dict.keys():
         del record_dict['']
@@ -96,6 +99,7 @@ def payment_to_wks(wks: pygsheets.Worksheet) -> None:
 def payment_to_json(record: dict) -> None:
     with open(PAYMENT_RECORD_FILE, 'w') as json_file:
         json.dump(record, json_file, indent=2)
+    payment_queue.put(record)  # Update the worksheet
 
 
 def read_payment_from_json() -> dict:
@@ -106,6 +110,18 @@ def read_payment_from_json() -> dict:
             print('Empty payment record file')
             return {}
     return data
+
+
+def payment_worker(wks: pygsheets.Worksheet, stop_event: threading.Event):
+    while not stop_event.is_set() or not payment_queue.empty():
+        try:
+            msg = payment_queue.get(timeout=1)
+        except queue.Empty:
+            continue  # Check stop_event again if no message was available
+        if msg is None:
+            break
+        payment_to_wks(wks)
+        payment_queue.task_done()
 
 
 def log_worker(stop_event: threading.Event):
@@ -216,23 +232,23 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
 
         # readability pro max!!!
         if p and c0:
-            return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ {target} doesn't need to pay\n"
+            return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} → {target} doesn't need to pay\n"
         elif not p and c0:
-            return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ {target} doesn't need to pay\n"
+            return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} → {target} doesn't need to pay\n"
         elif p0 and c:
             return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${current} (new record)\n"
         elif p0 and not c:
             return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${current} (new record)\n"
         elif p and c:
-            return f"> -# {CENTRALIZED_PERSON} needs to pay {target}: ${original} -→ ${current}\n"
+            return f"> -# {CENTRALIZED_PERSON} needs to pay {target}: ${original} → ${current}\n"
         elif not p and c:
-            return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} -→ " \
+            return f"> -# {target} needs to pay {CENTRALIZED_PERSON} ${original} → " \
                    f"{CENTRALIZED_PERSON} needs to pay {target} ${current}\n"
         elif p and not c:
-            return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} -→ " \
+            return f"> -# {CENTRALIZED_PERSON} needs to pay {target} ${original} → " \
                    f"{target} needs to pay {CENTRALIZED_PERSON} ${current}\n"
         else:
-            return f"> -# {target} needs to pay {CENTRALIZED_PERSON}: ${original} -→ ${current}\n"
+            return f"> -# {target} needs to pay {CENTRALIZED_PERSON}: ${original} → ${current}\n"
 
     update = ""
     payment_data = read_payment_from_json()

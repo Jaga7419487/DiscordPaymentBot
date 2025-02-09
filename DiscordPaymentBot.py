@@ -8,7 +8,7 @@ from discord.ext import commands
 from flask import Flask, send_from_directory
 
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system, \
-    wks_to_dict, payment_to_wks, log_worker, log_queue
+    wks_to_dict, payment_to_wks, payment_worker, log_worker, payment_queue, log_queue
 from constants import *
 
 app = Flask(__name__)
@@ -24,12 +24,6 @@ def run_flask():
     app.run(host='0.0.0.0', port=8000)
 
 
-def schedule_payment_updates(wks: pygsheets.Worksheet, stop_event: threading.Event):
-    while not stop_event.is_set():
-        time.sleep(UPDATE_INTERVAL)
-        payment_to_wks(wks)
-
-
 def run(wks: pygsheets.Worksheet):
     intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=intents)
@@ -37,9 +31,6 @@ def run(wks: pygsheets.Worksheet):
     @bot.event
     async def on_ready():
         print(f"Current logged in user --> {bot.user}")
-        # if greet_message:
-        #     pm_channel = bot.get_channel(PAYMENT_CHANNEL_ID)
-        #     await pm_channel.send(f"## I am back!\n**Here is the payment record list:**\n{payment_record(wks)}")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
 
     @bot.command(help="Show the bot information", brief="Bot information")
@@ -50,12 +41,6 @@ def run(wks: pygsheets.Worksheet):
                  brief="List all payment records")
     async def show(message: commands.Context):
         await message.channel.send(payment_record(wks))
-
-    @bot.command(help="Turn on/off greet message when bot is reconnected", brief="Greet message on/off")
-    async def greet(message: commands.Context):
-        global greet_message
-        greet_message = not greet_message
-        await message.channel.send(f'Greet message is now {"on" if greet_message else "off"}')
 
     @bot.command(help=f"Show the {LOG_SHOW_NUMBER} latest payment record inputs",
                  brief="Latest payment record inputs")
@@ -145,11 +130,14 @@ if __name__ == '__main__':
     sheet = gc.open_by_url(RECORD_SHEET_URL)
     record_wks = sheet.worksheet_by_title('Records')
     with open(PAYMENT_RECORD_FILE, 'w') as json_file:
-        json.dump(wks_to_dict(record_wks), json_file, indent=2)
+        record = wks_to_dict(record_wks)
+        if not record:
+            raise Exception("Empty record sheet")
+        json.dump(record, json_file, indent=2)
 
     # Start other threads
-    update_scheduler = threading.Thread(target=schedule_payment_updates, args=(record_wks, stop_event), daemon=True)
-    update_scheduler.start()
+    payment_thread = threading.Thread(target=payment_worker, args=(record_wks, stop_event), daemon=True)
+    payment_thread.start()
     log_thread = threading.Thread(target=log_worker, args=(stop_event,), daemon=True)
     log_thread.start()
 
@@ -159,7 +147,8 @@ if __name__ == '__main__':
         print(e)
     finally:
         stop_event.set()
-        update_scheduler.join()
+        payment_queue.put(None)
+        payment_queue.join()
         log_queue.put(None)
         log_queue.join()
         payment_to_wks(record_wks)
