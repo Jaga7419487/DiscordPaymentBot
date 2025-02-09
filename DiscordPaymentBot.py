@@ -111,10 +111,6 @@ def run(wks: pygsheets.Worksheet):
             return
         await payment_system(bot, message, wks, avg=True)
 
-    # @bot.command(hidden=True, disabled=True)
-    # async def piano(message: commands.Context):
-    #     await piano_system(bot, message)
-
     bot.run(BOT_KEY)
 
 
@@ -152,5 +148,5 @@ if __name__ == '__main__':
         log_queue.put(None)
         log_queue.join()
         payment_to_wks(record_wks)
-        open(SERVICE_ACCOUNT_FILE, 'w').close()  # Empty credential file -> Google Docs access error
+        open(SERVICE_ACCOUNT_FILE, 'w').close()
         open(PAYMENT_RECORD_FILE, 'w').close()

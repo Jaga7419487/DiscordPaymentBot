@@ -8,12 +8,3 @@ venv/
 deprecated/
 keys/
 test/
-botInfo_old.py
-test_bot.py
-gsheet_test.py
-
-log.txt
-payment_record.txt
-latest_currency.txt
-
-old_readme.md

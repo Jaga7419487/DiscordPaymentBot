@@ -252,7 +252,6 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
 
     update = ""
     payment_data = read_payment_from_json()
-    centralized_person = CENTRALIZED_PERSON
 
     # main logic
     try:
@@ -260,13 +259,13 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
         paid_list = ppl_get_paid.split(',')
         for each_to_pay in pay_list:
             for each_get_paid in paid_list:
-                if each_get_paid == centralized_person:
-                    update += owe(each_to_pay, centralized_person, amount)
-                elif each_to_pay == centralized_person:
-                    update += owe(centralized_person, each_get_paid, amount)
+                if each_get_paid == CENTRALIZED_PERSON:
+                    update += owe(each_to_pay, CENTRALIZED_PERSON, amount)
+                elif each_to_pay == CENTRALIZED_PERSON:
+                    update += owe(CENTRALIZED_PERSON, each_get_paid, amount)
                 else:
-                    update += owe(each_to_pay, centralized_person, amount) + \
-                              owe(centralized_person, each_get_paid, amount)
+                    update += owe(each_to_pay, CENTRALIZED_PERSON, amount) + \
+                              owe(CENTRALIZED_PERSON, each_get_paid, amount)
                 update += "> \n" if len(paid_list) > 1 else ""
             update += "> \n" if len(pay_list) > 1 else ""
         if ">" in update[-3:]:
@@ -417,10 +416,6 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         currency = parsed_input["currency"]
         reason = parsed_input["reason"]
 
-        if currency not in SUPPORTED_CURRENCY.keys():
-            await message.channel.send(f"**Invalid currency: {currency}**")
-            return
-
         """ amount -> actual_amount: float"""
         actual_amount, exchange_rate = exchange_currency(currency, amount)
         actual_amount *= 1.1 if service_charge else 1
@@ -444,7 +439,6 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             await message.channel.send("**ERROR: Payment handling failed**")
             return
 
-        # log the record
         user_mention = ' '.join([f'<@{USER_MAPPING.get(each)}>' for each in ppl_to_pay.split(',') + [ppl_get_paid]
                                  if USER_MAPPING.get(each)])
         user_mention = '\n-# ' + user_mention if user_mention else ''

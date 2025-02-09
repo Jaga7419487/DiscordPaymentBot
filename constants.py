@@ -89,7 +89,6 @@ LOG_SHOW_NUMBER = 10
 LONG_LOG_SHOW_NUMBER = 20
 MENU_TIMEOUT = 3600.0
 UNDO_TIMEOUT = 3600.0
-UPDATE_INTERVAL = 10
 
 # google
 SCOPES = ['https://www.googleapis.com/auth/documents']
@@ -146,10 +145,4 @@ BOT_DESCRIPTION = f"""
 > Example: `!pm personA,personB owe personC 100 -CNY sc example reason`
 
 -# Developed by __Jaga Chau__ 25-12-2023
-"""
-
-# `!piano`: Book piano room for specific date & time at 00:00
-
-"""
-Deprecated
 """
