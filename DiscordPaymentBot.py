@@ -1,6 +1,6 @@
 import json
 import threading
-import time
+import logging
 
 import discord
 import pygsheets
@@ -12,6 +12,8 @@ from PaymentSystem import payment_record, show_log, do_backup, show_backup, crea
 from constants import *
 
 app = Flask(__name__)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 stop_event = threading.Event()
 
 
