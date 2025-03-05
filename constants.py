@@ -6,13 +6,12 @@ load_dotenv()
 
 # bot
 BOT_KEY = os.getenv('BOT_KEY')
-PAYMENT_CHANNEL_ID = int(os.getenv('PAYMENT_CHANNEL_ID'))
-LOG_CHANNEL_ID = int(os.getenv('LOG_CHANNEL_ID'))
+PAYMENT_CHANNEL_ID = 1245368947923222639
+LOG_CHANNEL_ID = 1245369250315636776
 CENTRALIZED_PERSON = os.getenv('CENTRALIZED_PERSON')  # all names should be in lowercase
 TRADER_MADE_API_KEY = os.getenv('TRADER_MADE_API_KEY')
 LOG_DOC_ID = os.getenv('LOG_DOC_ID')
 BACKUP_DOC_ID = os.getenv('BACKUP_DOC_ID')
-COMMAND = "pm"
 BOT_STATUS = "->> !info"
 UNIFIED_CURRENCY = "HKD"
 VALID_CHARS_SET = set('0123456789+-*/.(（）)')
