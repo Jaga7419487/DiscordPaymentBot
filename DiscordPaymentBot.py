@@ -15,13 +15,8 @@ from constants import *
 
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
-log.setLevel(logging.INFO)
+log.setLevel(logging.ERROR)
 stop_event = threading.Event()
-
-
-@app.route('/health_check.html')
-def health_check():
-    return send_from_directory(os.getcwd(), 'health_check.html')
 
 
 @app.route('/keep_alive')
