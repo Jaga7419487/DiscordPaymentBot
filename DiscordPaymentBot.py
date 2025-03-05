@@ -1,6 +1,8 @@
 import json
 import threading
 import logging
+import requests
+import time
 
 import discord
 import pygsheets
@@ -13,13 +15,27 @@ from constants import *
 
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+log.setLevel(logging.INFO)
 stop_event = threading.Event()
 
 
 @app.route('/health_check.html')
 def health_check():
     return send_from_directory(os.getcwd(), 'health_check.html')
+
+
+@app.route('/keep_alive')
+def keep_alive():
+    return "I'm alive!"
+
+
+def ping_bot():
+    while True:
+        try:
+            requests.get(f'{KOYEB_PUBLIC_LINK}/keep_alive')
+        except requests.exceptions.RequestException as e:
+            print(f"Keep-alive request failed: {e}")
+        time.sleep(300)  # Ping every 5 minutes
 
 
 def run_flask():
@@ -138,6 +154,8 @@ if __name__ == '__main__':
     payment_thread.start()
     log_thread = threading.Thread(target=log_worker, args=(stop_event,), daemon=True)
     log_thread.start()
+    keep_alive_thread = threading.Thread(target=ping_bot, daemon=True)
+    keep_alive_thread.start()
 
     try:
         run(record_wks)

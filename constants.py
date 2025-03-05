@@ -90,6 +90,9 @@ LONG_LOG_SHOW_NUMBER = 20
 MENU_TIMEOUT = 3600.0
 UNDO_TIMEOUT = 3600.0
 
+# koyeb
+KOYEB_PUBLIC_LINK = os.getenv('KOYEB_PUBLIC_LINK')
+
 # google
 SCOPES = ['https://www.googleapis.com/auth/documents']
 SERVICE_ACCOUNT_FILE = 'temp/discord-payment-bot.json'
