@@ -6,8 +6,8 @@ load_dotenv()
 
 # bot
 BOT_KEY = os.getenv('BOT_KEY')
-PAYMENT_CHANNEL_ID = 1245368947923222639
-LOG_CHANNEL_ID = 1245369250315636776
+PAYMENT_CHANNEL_ID = int(os.getenv('PAYMENT_CHANNEL_ID'))
+LOG_CHANNEL_ID = int(os.getenv('LOG_CHANNEL_ID'))
 CENTRALIZED_PERSON = os.getenv('CENTRALIZED_PERSON')  # all names should be in lowercase
 TRADER_MADE_API_KEY = os.getenv('TRADER_MADE_API_KEY')
 LOG_DOC_ID = os.getenv('LOG_DOC_ID')
