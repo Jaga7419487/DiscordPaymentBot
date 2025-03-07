@@ -115,40 +115,40 @@ RECORD_SHEET_URL = os.getenv('RECORD_SHEET_URL')
 
 BOT_DESCRIPTION = f"""
 # Discord Payment Bot
-## Purpose: Store payment records among a group of people
+## Purpose: Manage and record payments among a group
 **Workflow:**
-1. **Scenario:** When __Person A__ help __Person B__ with a payment, __Person B__ is expected to pay back __Person A__ later
-2. **Centralized System:** A single individual serves as the central point for transactions, ensuring smooth exchanges between other users (like a bank)
+1. **Scenario:** When __Person A__ pays for __Person B__, __Person B__ owes __Person A__
+2. **Centralized System:** A central person manages transactions, ensuring smooth exchanges
 3. **Repayment Chain:** 
-  - __Person A__ helps __Person B__ → __Person B__ owes __Person A__
+  - __Person A__ pays for __Person B__ → __Person B__ owes __Person A__
   - __Person B__ owes __Centralized Person__ → __Centralized Person__ owes __Person A__
 **Bot Functionality:**
-- **Interaction:** Users can call the bot with '!' prefix (e.g. `!info`)
-- **Response:** The bot is expected to response all valid calls with corresponding messages.
-## List of commands
-`!info`: The message you are reading now
-`!list`: List out all payment records stored in the bot, short: `!l`
-`!create [name]`: Creates a new user with a name (e.g. `!create personA`)
-`!delete [name]`: Deletes a user if he has no debts (e.g. `!delete personA`)
-`!log`: Shows the {LOG_SHOW_NUMBER} latest payment record inputs
-`!logall`: Shows the {LONG_LOG_SHOW_NUMBER} latest payment record inputs
-`!currencies`: Shows all the supported currencies
-`!backup`: Backups the current payment record in a separate file
-`!showbackup`: Shows the backup records
+- **Interaction:** Users call the bot with '!' prefix (e.g., `!info`)
+- **Response:** The bot responds to valid commands with appropriate messages
+## Commands
+`!info`: Display this information
+`!list`: List all payment records, short: `!l`
+`!create [name]`: Create a new user (e.g., `!create personA`)
+`!delete [name]`: Delete a user with no debts (e.g., `!delete personA`)
+`!log`: Show the latest {LOG_SHOW_NUMBER} payment records
+`!logall`: Show the latest {LONG_LOG_SHOW_NUMBER} payment records
+`!currencies`: Show supported currencies
+`!backup`: Backup current payment records
+`!showbackup`: Show backup records
 `!encrypt`: Encrypt a message with a secret key
 `!decrypt`: Decrypt an encrypted message with a key
-`!pmavg`: Enters a payment record with the amount divided by the number of payees (similar to **!pm**)
-**`!pm`: Enters a payment record (UI window if only `!pm` sent)**
+`!pmavg`: Enter a payment record, amount divided by payees
+**`!pm`: Enter a payment record (UI window if only `!pm` sent)**
 > __Syntax:__
 > `!pm [payee] [operation] [get paid] [amount] [-CUR] [sc] [reason]`
-> `payee`: People that should pay back the money later, separated by ',' without space
+> `payee`: People who should repay, separated by ',' without spaces
 > `operation`: `owe`/`payback`
-> `get paid`: Person that should be paid back later
-> `amount`: Up to 3 decimal point
+> `get paid`: Person to be repaid
+> `amount`: Up to 3 decimal points
 > `-CUR`: Optional: `HKD/CNY/GBP` (default `HKD`)
 > `sc`: Optional: include 10% service charge
 > `reason`: Optional, no brackets needed
 > Example: `!pm personA,personB owe personC 100 -CNY sc example reason`
 
--# Developed by __Jaga Chau__ 25-12-2023
+- Developed by __Jaga Chau__ 25-12-2023
 """
