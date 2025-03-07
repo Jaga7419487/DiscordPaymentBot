@@ -12,6 +12,7 @@ from flask import Flask
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system, \
     wks_to_dict, payment_to_wks, payment_worker, log_worker, payment_queue, log_queue
 from constants import *
+from encryption import decrypt_command, encrypt_command
 
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
@@ -123,7 +124,15 @@ def run(wks: pygsheets.Worksheet):
             await message.channel.send("Please input the record in the **payment** channel")
             return
         await payment_system(bot, message, wks, avg=True)
-
+    
+    @bot.command(help="Encrypt a string with a key", brief="Encrypt a string")
+    async def encrypt(message: commands.Context):
+        await encrypt_command(bot, message)
+    
+    @bot.command(help="Decrypt a string with a key", brief="Decrypt a string")
+    async def decrypt(message: commands.Context):
+        await decrypt_command(bot, message)
+        
     bot.run(BOT_KEY)
 
 
