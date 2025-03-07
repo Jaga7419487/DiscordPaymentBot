@@ -1,5 +1,6 @@
 import os
 
+import pytz
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -69,7 +70,7 @@ SUPPORTED_CURRENCY = {
     "XPT": "Platinum",
     "ZAR": "South African Rand",
 }
-USER_MAPPING = {
+USER_MAPPING = {  # for mentioning
     'jaga': '635760265975169044',
     'larry': '641546398764105759',
     '741': '688994217745580067',
@@ -91,6 +92,7 @@ UNDO_TIMEOUT = 3600.0
 
 # koyeb
 KOYEB_PUBLIC_LINK = os.getenv('KOYEB_PUBLIC_LINK')
+TIMEZONE = pytz.timezone('Asia/Hong_Kong')
 
 # google
 SCOPES = ['https://www.googleapis.com/auth/documents']

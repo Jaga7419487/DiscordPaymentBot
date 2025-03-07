@@ -7,7 +7,7 @@ import discord
 import pygsheets
 import requests
 from discord.ext import commands
-from flask import Flask, send_from_directory
+from flask import Flask
 
 from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system, \
     wks_to_dict, payment_to_wks, payment_worker, log_worker, payment_queue, log_queue
@@ -53,7 +53,7 @@ def run(wks: pygsheets.Worksheet):
     @bot.command(name="list", aliases=['l'], help="List out all payment records stored in the bot",
                  brief="List all payment records")
     async def show(message: commands.Context):
-        await message.channel.send(payment_record(wks))
+        await message.channel.send(payment_record())
 
     @bot.command(help=f"Show the {LOG_SHOW_NUMBER} latest payment record inputs",
                  brief="Latest payment record inputs")
@@ -72,7 +72,7 @@ def run(wks: pygsheets.Worksheet):
 
     @bot.command(help="Backup the current payment record in a separate file", brief="Backup the payment record")
     async def backup(message: commands.Context):
-        await message.channel.send("**Backup done**\n" + do_backup(wks))
+        await message.channel.send("**Backup done**\n" + do_backup())
 
     @bot.command(help="Show the backup records", brief="Show the backup records", hidden=True)
     async def showbackup(message: commands.Context):
@@ -88,8 +88,8 @@ def run(wks: pygsheets.Worksheet):
             return
         person = message.message.content.split()[1]
         author = message.author.name
-        if create_ppl(person, author, wks):
-            await message.channel.send(f"### Person {person} created!\n{payment_record(wks)}")
+        if create_ppl(person, author):
+            await message.channel.send(f"### Person {person} created!\n{payment_record()}")
             await bot.get_channel(LOG_CHANNEL_ID).send(f"{author}: Created new person: {person}")
         else:
             await message.channel.send(f"**Failed to create {person}!**\nPerson already exists.")
@@ -104,8 +104,8 @@ def run(wks: pygsheets.Worksheet):
             return
         target = message.message.content.split()[1]
         author = message.author.name
-        if delete_ppl(target, author, wks):
-            await message.channel.send(f"### Person {target} deleted!\n{payment_record(wks)}")
+        if delete_ppl(target, author):
+            await message.channel.send(f"### Person {target} deleted!\n{payment_record()}")
             await bot.get_channel(LOG_CHANNEL_ID).send(f"{author}: Deleted person: {target}")
         else:
             await message.channel.send(f"**Failed to delete {target}!**\nPerson not found or has not paid off yet.")

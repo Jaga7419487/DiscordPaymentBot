@@ -1,7 +1,7 @@
 import json
-import time
-import threading
 import queue
+import threading
+from datetime import datetime
 from typing import List, Tuple, Union
 
 import pandas as pd
@@ -13,7 +13,6 @@ from googleapiclient.discovery import build
 
 from PaymentSystemUI import InputView, UndoView, is_valid_amount, amt_parser
 from constants import *
-
 
 log_queue = queue.Queue()
 payment_queue = queue.Queue()
@@ -132,7 +131,8 @@ def log_worker(stop_event: threading.Event):
             continue  # Check stop_event again if no message was available
         if msg is None:
             break
-        write_doc(LOG_DOC_ID, f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
+        current_time = datetime.now(TIMEZONE)
+        write_doc(LOG_DOC_ID, f"[{current_time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
         log_queue.task_done()
 
 
@@ -140,7 +140,7 @@ def show_log(num: int = -1) -> str:
     return get_document_content(LOG_DOC_ID, num)
 
 
-def payment_record(wks: pygsheets.Worksheet) -> str:
+def payment_record() -> str:
     zero = take_money = need_pay = ""
     count = 0.0
 
@@ -167,7 +167,7 @@ def payment_record(wks: pygsheets.Worksheet) -> str:
     return payment_record_content
 
 
-def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
+def create_ppl(name: str, author: str) -> bool:
     try:
         record_dict = read_payment_from_json()
         if name not in record_dict.keys() and name != CENTRALIZED_PERSON:
@@ -180,7 +180,7 @@ def create_ppl(name: str, author: str, wks: pygsheets.Worksheet) -> bool:
     return False
 
 
-def delete_ppl(target: str, author: str, wks: pygsheets.Worksheet) -> bool:
+def delete_ppl(target: str, author: str) -> bool:
     try:
         record_dict = read_payment_from_json()
         if target in record_dict.keys() and record_dict[target] == 0:
@@ -193,7 +193,7 @@ def delete_ppl(target: str, author: str, wks: pygsheets.Worksheet) -> bool:
     return False
 
 
-def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pygsheets.Worksheet) -> str:
+def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float) -> str:
     def owe(person_to_pay: str, person_get_paid: str, amount: float) -> str:
         if person_to_pay == person_get_paid:
             return ""
@@ -278,8 +278,9 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, wks: pyg
     return update
 
 
-def do_backup(wks: pygsheets.Worksheet) -> str:
-    backup_text = f"[{time.strftime('%Y-%m-%d %H:%M')}]\n"
+def do_backup() -> str:
+    current_time = datetime.now(TIMEZONE)
+    backup_text = f"[{current_time.strftime('%Y-%m-%d %H:%M')}]\n"
     for name, amount in read_payment_from_json().items():
         backup_text += f"{name} {amount}\n"
     backup_text += "\n"
@@ -289,7 +290,7 @@ def do_backup(wks: pygsheets.Worksheet) -> str:
 
 
 def show_backup() -> str:
-    return get_document_content(BACKUP_DOC_ID)
+    return get_document_content(BACKUP_DOC_ID).split("\n\n")[-2]
 
 
 async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygsheets.Worksheet, avg=False):
@@ -434,7 +435,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             ppl_to_pay, ppl_get_paid = ppl_get_paid, ppl_to_pay
 
         # perform the payment operation
-        update = payment_handling(ppl_to_pay, ppl_get_paid, actual_amount, wks)
+        update = payment_handling(ppl_to_pay, ppl_get_paid, actual_amount)
         if not update:
             await message.channel.send("**ERROR: Payment handling failed**")
             return
@@ -455,7 +456,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
 
         # handle undo operation
         if undo_view.undo and undo_view.edit:
-            undo_update = "> -# Updated records:\n" + payment_handling(ppl_get_paid, ppl_to_pay, actual_amount, wks)
+            undo_update = "> -# Updated records:\n" + payment_handling(ppl_get_paid, ppl_to_pay, actual_amount)
             await message.channel.send("**Undo has been executed for editing!**\n")
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             log_queue.put(undo_log_content)
@@ -463,7 +464,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
             await handle_payment(ppl_to_pay, operation_owe, ppl_get_paid, amount, service_charge, currency,
                                  reason)
         elif undo_view.undo:
-            undo_update = "> -# Updated records:\n" + payment_handling(ppl_get_paid, ppl_to_pay, actual_amount, wks)
+            undo_update = "> -# Updated records:\n" + payment_handling(ppl_get_paid, ppl_to_pay, actual_amount)
             await message.channel.send("**Undo has been executed!**\n")
             undo_log_content = f"{message.author}: __UNDO__ **[**{log_content}**]**"
             log_queue.put(undo_log_content)
