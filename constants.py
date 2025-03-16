@@ -97,8 +97,8 @@ TIMEZONE = pytz.timezone('Asia/Hong_Kong')
 
 # google
 SCOPES = ['https://www.googleapis.com/auth/documents']
-SERVICE_ACCOUNT_FILE = 'temp/discord-payment-bot.json'
-PAYMENT_RECORD_FILE = 'temp/payment-record.json'
+SERVICE_ACCOUNT_FILE = 'discord-payment-bot.json'
+PAYMENT_RECORD_FILE = 'payment-record.json'
 GOOGLE_CRED = {
     "type": "service_account",
     "project_id": os.getenv('PROJECT_ID'),
