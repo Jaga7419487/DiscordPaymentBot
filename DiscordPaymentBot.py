@@ -46,66 +46,73 @@ def run(wks: pygsheets.Worksheet):
 
     @bot.event
     async def on_ready():
-        print(f"Logged in bot --> {bot.user} (Call !start to start)")
+        print(f"Logged in bot --> {bot.user} (Call !switch to start/stop)")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
 
     @bot.command(hidden=True)
-    async def start(message: commands.Context):
+    async def switch(message: commands.Context):
         global start_bot
-        start_bot = True
-        await message.channel.send("**Bot started!**")
-        print("Bot started!")
+        start_bot = not start_bot
+        await message.channel.send(f"**Bot {'started' if start_bot else 'stopped'}!**")
 
     @bot.command(help="Show the bot information", brief="Bot information")
     async def info(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         await message.channel.send(BOT_DESCRIPTION)
 
     @bot.command(name="list", aliases=['l'], help="List out all payment records stored in the bot",
                  brief="List all payment records")
     async def show(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         await message.channel.send(payment_record())
 
     @bot.command(help=f"Show the {LOG_SHOW_NUMBER} latest payment record inputs",
                  brief="Latest payment record inputs")
     async def log(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         await message.channel.send(show_log(LOG_SHOW_NUMBER))
 
     @bot.command(help=f"Show the {LONG_LOG_SHOW_NUMBER} latest payment record inputs",
                  brief="Latest payment record inputs")
     async def logall(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         await message.channel.send(show_log(LONG_LOG_SHOW_NUMBER))
 
     @bot.command(name='currencies', help="Show all the supported currencies", brief="All supported currencies")
     async def show_all_currencies(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         currency_text = '\n'.join([f"**{key}**: {value}" for key, value in SUPPORTED_CURRENCY.items()])
         await message.channel.send(currency_text)
 
     @bot.command(help="Backup the current payment record in a separate file", brief="Backup the payment record")
     async def backup(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         await message.channel.send("**Backup done**\n" + do_backup())
 
     @bot.command(help="Show the backup records", brief="Show the backup records", hidden=True)
     async def showbackup(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         await message.channel.send(show_backup())
 
     @bot.command(help="Create a new user with a name", brief="Create a new user")
     async def create(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         if message.channel.id != PAYMENT_CHANNEL_ID:
             await message.channel.send("Please create in the **payment** channel")
             return
@@ -123,7 +130,8 @@ def run(wks: pygsheets.Worksheet):
     @bot.command(help="Delete a user if he has no debts", brief="Delete a user")
     async def delete(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         if message.channel.id != PAYMENT_CHANNEL_ID:
             await message.channel.send("Please delete in the **payment** channel")
             return
@@ -141,7 +149,8 @@ def run(wks: pygsheets.Worksheet):
     @bot.command(help="Enters a payment record", brief="Enters a payment record")
     async def pm(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         if message.channel.id != PAYMENT_CHANNEL_ID:
             await message.channel.send("Please input the record in the **payment** channel")
             return
@@ -150,7 +159,8 @@ def run(wks: pygsheets.Worksheet):
     @bot.command(help="Enters a payment record by averaging the amount", brief="Enters a payment record by averaging")
     async def pmavg(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         if message.channel.id != PAYMENT_CHANNEL_ID:
             await message.channel.send("Please input the record in the **payment** channel")
             return
@@ -159,13 +169,15 @@ def run(wks: pygsheets.Worksheet):
     @bot.command(aliases=['enc'], help="Encrypt a string with a key", brief="Encrypt a string")
     async def encrypt(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         await encrypt_command(message)
 
     @bot.command(aliases=['dec'], help="Decrypt a string with a key", brief="Decrypt a string")
     async def decrypt(message: commands.Context):
         if not start_bot:
-            raise Exception("Bot is not started! Call !start to start the bot")
+            print("Bot is not started! Call !switch to start the bot")
+            return
         await decrypt_command(message)
 
     bot.run(BOT_KEY)
@@ -209,3 +221,4 @@ if __name__ == '__main__':
         payment_to_wks(record_wks)
         open(SERVICE_ACCOUNT_FILE, 'w').close()
         open(PAYMENT_RECORD_FILE, 'w').close()
+        print("Bot stopped!")

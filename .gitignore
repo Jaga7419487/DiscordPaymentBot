@@ -6,5 +6,6 @@ venv/
 .env
 
 deprecated/
+temp/
 keys/
 test/

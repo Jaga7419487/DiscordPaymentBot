@@ -317,14 +317,15 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         :param amount: amount to convert
         :return: tuple of converted amount and exchange rate
         """
+        amount = float(amount)
         if from_cur == UNIFIED_CURRENCY:
-            return float(amount), 1.0
+            return amount, 1.0
         to_cur = UNIFIED_CURRENCY
         url = f"https://marketdata.tradermade.com/api/v1/convert?api_key={TRADER_MADE_API_KEY}&" \
-              f"from={from_cur}&to={to_cur}&amount={amount}"
+              f"from={from_cur}&to={to_cur}&amount=1"
         response = requests.get(url)
-        data = response.json()
-        return data['total'], data['quote']
+        rate = response.json()['quote']
+        return amount * rate, rate
 
     def parse_cmd_input(msg: list[str]):
         """ e.g. !pm p1,p2 owe p3 100 -cny sc rea son 123 """
@@ -348,7 +349,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
         if not is_valid_amount(msg[4]):
             return "**Invalid amount!**"
         try:
-            amount: float = eval(amt_parser(msg[4]))
+            amount: float = round(eval(amt_parser(msg[4])), ROUND_OFF_DP)
         except ZeroDivisionError:
             return "**Invalid amount: Don't divide zero la...**"
         except (ValueError, SyntaxError):
@@ -425,7 +426,7 @@ async def payment_system(bot: commands.Bot, message: commands.Context, wks: pygs
 
         reason_text = (' ' + reason if reason[0] in '(（' and reason[-1] in '）)' else f' ({reason})') if reason else ''
         operation_text = "owe" if operation_owe else "pay back"
-        currency_text = f" [{currency}({exchange_rate}) -> {UNIFIED_CURRENCY}(1)]" \
+        currency_text = f" [{currency}(1) -> {UNIFIED_CURRENCY}({exchange_rate})]" \
             if currency != UNIFIED_CURRENCY else ''
         log_content = f"{message.author}: {ppl_to_pay} {operation_text} {ppl_get_paid} ${actual_amount}" \
                       f"{reason_text}{currency_text}"
