@@ -9,14 +9,14 @@ import requests
 from discord.ext import commands
 from flask import Flask
 
-from PaymentSystem import payment_record, show_log, do_backup, show_backup, create_ppl, delete_ppl, payment_system, \
-    wks_to_dict, payment_to_wks, payment_worker, log_worker, payment_queue, log_queue
 from constants import *
+from PaymentSystem import *
+from AutoPianoBooking import piano_system
 from encryption import decrypt_command, encrypt_command
 
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+log.setLevel(logging.INFO)
 stop_event = threading.Event()
 start_bot = False
 
@@ -179,6 +179,13 @@ def run(wks: pygsheets.Worksheet):
             print("Bot is not started! Call !switch to start the bot")
             return
         await decrypt_command(message)
+        
+    @bot.command(hidden=True)
+    async def piano(message: commands.Context):
+        if not start_bot:
+            print("Bot is not started! Call !switch to start the bot")
+            return
+        await piano_system(bot, message)
 
     bot.run(BOT_KEY)
 
