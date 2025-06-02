@@ -1,12 +1,17 @@
 from datetime import datetime
+import json
 
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
-from constants import FIREBASE_KEY_PATH, TIMEZONE
+from constants import FIREBASE_KEY, FIREBASE_KEY_PATH, TIMEZONE
 
+
+with open(FIREBASE_KEY_PATH, 'w') as f:
+    json.dump(FIREBASE_KEY, f, indent=2)
+    
 cred = credentials.Certificate(FIREBASE_KEY_PATH)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
