@@ -70,7 +70,7 @@ def show_payment_record() -> str:
         else:
             need_pay += f"{B(name)} needs to pay ${I(-amount)}\n" 
     
-    if sum != 0:
+    if round(sum, 5) != 0:
         return "Error in records! Sum of payments is not zero"
 
     zero = zero + "\n" if zero else zero
