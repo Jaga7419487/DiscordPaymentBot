@@ -1,6 +1,7 @@
 import discord
 
 from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CURRENCY, VALID_CHARS_SET
+from utils import *
 
 
 def is_valid_amount(amt: str) -> bool:
@@ -117,17 +118,15 @@ class AmountModal(discord.ui.Modal):
             self.currency_textinput.default = currency
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-
         try:
             if is_valid_amount(self.amount_textinput.value):
                 self.amount = str(eval(amt_parser(self.amount_textinput.value)))
             else:
-                await interaction.channel.send("Invalid amount!")
+                await interaction.response.send_message("Invalid amount!", ephemeral=True)
         except ZeroDivisionError:
-            await interaction.channel.send("**Invalid amount: Don't divide zero la...**")
+            await interaction.response.send_message(B("Invalid amount: Don't divide zero la..."), ephemeral=True)
         except (ValueError, SyntaxError):
-            await interaction.channel.send("**What have you entered for the amount .-.**")
+            await interaction.response.send_message(B("What have you entered for the amount .-."), ephemeral=True)
 
         if self.reason_textinput.value and self.reason_textinput.value[0] in '(（' \
                 and self.reason_textinput.value[-1] == '）)':
@@ -140,8 +139,10 @@ class AmountModal(discord.ui.Modal):
         elif self.currency_textinput.value == '':
             self.currency = UNIFIED_CURRENCY
         else:
-            await interaction.channel.send("Invalid currency!")
+            await interaction.response.send_message("Invalid currency!", ephemeral=True)
 
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         self.stop()
 
 
@@ -207,7 +208,7 @@ class CancelButton(discord.ui.Button):
         for item in self.view.children:
             item.disabled = True
         await interaction.message.edit(view=self.view)
-        await interaction.response.send_message("Process cancelled!", ephemeral=True)
+        await interaction.response.defer()
         self.view.stop()
 
 
@@ -222,6 +223,8 @@ class UndoButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         self.view.undo = True
+        self.view.undo_user = interaction.user.name
+        self.view.cancelled_at = interaction.message.created_at
         self.label = "Undo done"
         for item in self.view.children:
             item.disabled = True
@@ -241,6 +244,8 @@ class EditButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         self.view.undo = True
         self.view.edit = True
+        self.view.undo_user = interaction.user.name
+        self.view.cancelled_at = interaction.message.created_at
         self.label = "Edit triggered"
         for item in self.view.children:
             item.disabled = True
@@ -265,11 +270,10 @@ class InputView(discord.ui.View):
         self.currency = currency
         self.reason = reason
 
-        self.embed_text = discord.Embed(title="Payment record", colour=0xC57CEE, description="??? owe ??? 0")
+        self.embed_text = discord.Embed(title="Payment record", colour=0xC57CEE, description="??? owe ??? $???")
 
         self.owe_btn = OweButton(self.owe)
         self.service_charge_btn = ServiceChargeButton(self.service_charge)
-        # self.currency_btn = CurrencyButton(switch_currency(self.currency))
         self.modal_trigger = ModalTrigger()
         self.enter_btn = EnterButton()
         self.cancel_btn = CancelButton()
@@ -279,21 +283,11 @@ class InputView(discord.ui.View):
 
         self.add_item(self.owe_btn)
         self.add_item(self.service_charge_btn)
-        # self.add_item(self.currency_btn)
         self.add_item(self.ppl_to_pay_menu)
         self.add_item(self.person_get_paid_menu)
         self.add_item(self.modal_trigger)
         self.add_item(self.enter_btn)
         self.add_item(self.cancel_btn)
-
-    def __del__(self):
-        del self.owe_btn
-        # del self.currency_btn
-        del self.modal_trigger
-        del self.enter_btn
-        del self.cancel_btn
-        del self.ppl_to_pay_menu
-        del self.person_get_paid_menu
 
     def correct_input(self) -> bool:
         return not (self.pay_text == "???" or self.paid_text == "???" or
@@ -324,13 +318,18 @@ class InputView(discord.ui.View):
 
 
 class UndoView(discord.ui.View):
-    def __init__(self, show_edit_btn: bool):
+    def __init__(self, show_edit_btn: bool, response_content: str):
         super().__init__(timeout=UNDO_TIMEOUT)
 
         self.undo = False
         self.edit = False
+        self.undo_user = None
+        self.cancelled_at = None
         self.undo_btn = UndoButton()
         self.add_item(self.undo_btn)
+        
+        test_text = "`stickmanjc: 1 owe 2 $1.0`\n-# Updated records:\n-# 1 needs to pay: $7.0 → $8.0\n-# 2 should receive: $7.0 → $8.0"
+        self.embed_text = discord.Embed(title="Payment record successfully updated!", description=response_content)
 
         if show_edit_btn:
             self.edit_btn = EditButton()
@@ -341,50 +340,3 @@ class UndoView(discord.ui.View):
             item.disabled = True
         await self.message.edit(view=self)
         self.stop()
-
-
-if __name__ == "__main__":
-    from discord.ext import commands
-
-    BOT_KEY = "MTE4OTEyMDQ1NDkwMDg1NDg4Nw.GnLE86.Wb7f7Eh3UiC5zGdrFdDBwkxFFBYLrQgtVOj23g"  # test bot
-    payment_data = {
-        "ppl1": 100,
-        "ppl2": -100,
-        "ppl3": 0
-    }
-
-    intents = discord.Intents.all()
-    bot = commands.Bot(command_prefix='!', intents=intents)
-
-
-    @bot.event
-    async def on_ready():
-        print(f"Current logged in user --> {bot.user}")
-
-
-    @bot.command()
-    async def test(ctx: commands.Context):
-        menu = InputView(payment_data)
-        # await ctx.send(f"{ctx.author}: {ctx.message.content}")
-        menu.message = await ctx.send(view=menu)
-        await menu.wait()
-        ppl_to_pay = menu.pay_text
-        person_get_paid = menu.paid_text
-        amount = menu.amount_text
-        reason = menu.reason
-        finished = menu.finished
-        owe = menu.owe
-
-        if menu.cancelled:
-            return
-
-        await ctx.send(f"people to pay: {ppl_to_pay}\nperson get paid: {person_get_paid}\namount: {amount}"
-                       f"\nreason: {reason}\nfinished: {finished}\nowe: {owe}")
-
-        undo = UndoView()
-        undo.message = await ctx.send(view=undo)
-        await undo.wait()
-        await ctx.send(f"undo: {undo.undo}")
-
-
-    bot.run(BOT_KEY)

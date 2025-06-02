@@ -5,7 +5,7 @@ import discord
 from constants import MENU_TIMEOUT
 
 
-def day_to_options(book_now: bool) -> [discord.SelectOption]:
+def day_to_options(book_now: bool) -> list[discord.SelectOption]:
     options = []
     for i in range(7):
         day = datetime.today() + timedelta(days=i if book_now else i + 1)
@@ -14,7 +14,7 @@ def day_to_options(book_now: bool) -> [discord.SelectOption]:
     return options
 
 
-def timeslot_to_options(session) -> [discord.SelectOption]:
+def timeslot_to_options(session) -> list[discord.SelectOption]:
     options = []
     start = end = 0
 
@@ -36,7 +36,7 @@ def timeslot_to_options(session) -> [discord.SelectOption]:
     return options
 
 
-def duration_to_options(n=4) -> [discord.SelectOption]:
+def duration_to_options(n=4) -> list[discord.SelectOption]:
     options = [
         discord.SelectOption(label="30 minutes", value="1"),
         discord.SelectOption(label="1 hour", value="2"),
@@ -117,16 +117,9 @@ class ActionButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         self.view.action = (self.view.action + 1) % 2  # set action to the opposite
-        
         if self.view.action == 0:  # wait 00:00
             self.view.day = 7  # set day to last day
             self.view.duration = 4  # 2hrs 
-            
-        # if (self.view.action == 1 and self.view.day == 7) or (self.view.action == 0 and self.view.day == 1):
-        #     self.view.day = 0
-        # else:
-        #     self.view.day = self.view.day + 1 if self.view.action == 0 else self.view.day - 1
-
         self.label = self.actions[(self.view.action + 1) % 2]  # set button label to the opposite action
         self.view.day_menu.options = day_to_options(self.view.action == 1)  # update day menu options accordingly
         self.view.update_description()
@@ -404,8 +397,7 @@ class View(discord.ui.View):
 
 if __name__ == "__main__":
     from discord.ext import commands
-
-    BOT_KEY = ""  # test bot
+    from constants import BOT_KEY
 
     intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=intents)

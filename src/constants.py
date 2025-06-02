@@ -9,10 +9,6 @@ load_dotenv()
 BOT_KEY = os.getenv('BOT_KEY')
 PAYMENT_CHANNEL_ID = int(os.getenv('PAYMENT_CHANNEL_ID'))
 LOG_CHANNEL_ID = int(os.getenv('LOG_CHANNEL_ID'))
-CENTRALIZED_PERSON = os.getenv('CENTRALIZED_PERSON')  # all names should be in lowercase
-TRADER_MADE_API_KEY = os.getenv('TRADER_MADE_API_KEY')
-LOG_DOC_ID = os.getenv('LOG_DOC_ID')
-BACKUP_DOC_ID = os.getenv('BACKUP_DOC_ID')
 BOT_STATUS = "->> !info"
 UNIFIED_CURRENCY = "HKD"
 VALID_CHARS_SET = set('0123456789+-*/.(（）)')
@@ -86,33 +82,19 @@ USER_MAPPING = {  # for mentioning
 # digits
 ROUND_OFF_DP = 3
 LOG_SHOW_NUMBER = 10
-LONG_LOG_SHOW_NUMBER = 20
 MENU_TIMEOUT = 3600.0
 UNDO_TIMEOUT = 3600.0
 ENCRYPTED_DELETE_TIMEOUT = 15
 
 # koyeb
 KOYEB_PUBLIC_LINK = os.getenv('KOYEB_PUBLIC_LINK')
-TIMEZONE = pytz.timezone('Asia/Hong_Kong')
+TIMEZONE = pytz.timezone('Asia/Hong_Kong')  # ensure consistency between firestore and discord
 
-# google
-SCOPES = ['https://www.googleapis.com/auth/documents']
-SERVICE_ACCOUNT_FILE = 'discord-payment-bot.json'
-PAYMENT_RECORD_FILE = 'payment-record.json'
-GOOGLE_CRED = {
-    "type": "service_account",
-    "project_id": os.getenv('PROJECT_ID'),
-    "private_key_id": os.getenv('PRIVATE_KEY_ID'),
-    "private_key": os.getenv('PRIVATE_KEY').replace('\\n', '\n'),
-    "client_email": os.getenv('CLIENT_EMAIL'),
-    "client_id": os.getenv('CLIENT_ID'),
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": os.getenv('CLIENT_X509_CERT_URL'),
-    "universe_domain": "googleapis.com"
-}
-RECORD_SHEET_URL = os.getenv('RECORD_SHEET_URL')
+# firebase
+FIREBASE_KEY_PATH = "discord-payment-bot-firebase-adminsdk.json"
+
+# trader made (for exchange rates)
+TRADER_MADE_API_KEY = os.getenv('TRADER_MADE_API_KEY')
 
 BOT_DESCRIPTION = f"""
 # Discord Payment Bot
@@ -132,21 +114,18 @@ BOT_DESCRIPTION = f"""
 `!create [name]`: Create a new user (e.g., `!create personA`)
 `!delete [name]`: Delete a user with no debts (e.g., `!delete personA`)
 `!log`: Show the latest {LOG_SHOW_NUMBER} payment records
-`!logall`: Show the latest {LONG_LOG_SHOW_NUMBER} payment records
+`!logall`: Show all command logs
 `!currencies`: Show supported currencies
-`!backup`: Backup current payment records
-`!showbackup`: Show backup records
 `!encrypt`: Encrypt a message with a secret key
 `!decrypt`: Decrypt an encrypted message with a key
-`!pmavg`: Enter a payment record, amount divided by payees
 **`!pm`: Enter a payment record (UI window if only `!pm` sent)**
 > __Syntax:__
-> `!pm [payee] [operation] [get paid] [amount] [-CUR] [sc] [reason]`
+> `!pm [payee] [operation] [get paid] [amount] [-cur] [sc] [reason]`
 > `payee`: People who should repay, separated by ',' without spaces
 > `operation`: `owe`/`payback`
 > `get paid`: Person to be repaid
 > `amount`: Up to 3 decimal points
-> `-CUR`: Optional: `HKD/CNY/GBP` (default `HKD`)
+> `-cur`: Optional: `HKD/CNY/GBP` (default `HKD`)
 > `sc`: Optional: include 10% service charge
 > `reason`: Optional, no brackets needed
 > Example: `!pm personA,personB owe personC 100 -CNY sc example reason`

@@ -1,0 +1,11 @@
+lowercase_underscores:
+- packages, modules, files
+
+PascalCase:
+- classes
+
+snake_case:
+- functions, methods, variables
+
+UPPERCASE:
+- constants

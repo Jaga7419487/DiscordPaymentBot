@@ -202,7 +202,6 @@ async def decrypt_command(message: commands.Context):
 
 
 if __name__ == "__main__":
-    # Example usage
     password = "MyPassword"
     key = "MyKey"
 

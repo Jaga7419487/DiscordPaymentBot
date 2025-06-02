@@ -8,7 +8,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-import AutoPianoBookingUI as AutoPianoBookingUI
+import piano.piano_ui as piano_ui
+
 
 link = 'https://w5.ab.ust.hk/wrm/app/login?path=/bookings/add/music-room/timetable'  # link to be opened
 
@@ -19,7 +20,7 @@ chrome_options.add_argument("--no-sandbox")  # Required for some server environm
 chrome_options.add_argument("--disable-dev-shm-usage")  # Avoids issues in memory-constrained environments
 
 
-def set_path(room: int, day: int, time_slot: int, duration: int) -> [str]:
+def set_path(room: int, day: int, time_slot: int, duration: int) -> list[str]:
     """
     :param room: 1/2 (111/114)
     :param day: 1-7 (today:1, tmr:2, ...)
@@ -103,7 +104,7 @@ async def piano_system(bot: commands.Bot, message):
             continue
 
     try:
-        menu = AutoPianoBookingUI.View()
+        menu = piano_ui.View()
         menu.update_description()
         menu.message = await message.send(view=menu, embed=menu.embed_text)
         await menu.wait()

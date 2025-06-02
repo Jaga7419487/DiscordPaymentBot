@@ -1,1 +1,1 @@
-web: python DiscordPaymentBot.py
+web: python src/discord_payment_bot.py

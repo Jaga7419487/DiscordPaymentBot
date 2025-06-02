@@ -1,0 +1,28 @@
+users (collection)
+├── username (document)
+│   ├── balance: <number>
+│   ├── lastUpdated: <timestamp>
+
+logs (collection)
+├── logId (document)
+│   ├── type: <payment | read | manage | encrypt | piano>
+│   ├── timestamp: <timestamp>
+│   ├── channel: <payment | private | others>
+│   ├── enteredBy: <username>
+│   ├── command: <command string>
+│   ├── payers (payment): <username>
+│   ├── operation (payment): <owe | payback>
+│   ├── payees (payment): <username>
+│   ├── amount (payment): <number>
+│   ├── reason (payment): <string>
+│   ├── cancelled (payment): <boolean>
+
+bots (collection)
+├── id (document)
+│   ├── startTime: <timestamp>
+
+type
+- payment: !pm
+- read: !info, !list, !help, !log, !showbackup, !status
+- manage: !create, !delete, !backup, !switch, undo
+- others: !encrypt, !decrypt, !piano
