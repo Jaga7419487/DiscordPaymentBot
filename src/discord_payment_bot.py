@@ -61,8 +61,7 @@ def run():
                  brief="List all payment records")
     async def show(message: commands.Context):
         if bot_state.active:
-            response = await message.channel.send('loading...')
-            await response.edit(content=show_payment_record())
+            await message.channel.send(show_payment_record())
             write_log('read', channel_to_text(message.channel), message.author.name, message.message.content,
                       message.message.created_at.astimezone(TIMEZONE))
         else:
