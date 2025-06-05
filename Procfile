@@ -1,1 +1,1 @@
-web: python src/discord_payment_bot.py
+web: python src/main.py

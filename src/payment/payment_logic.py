@@ -38,7 +38,7 @@ def firebase_worker():
     while True:
         task = firebase_queue.get()
         if task is None:
-            break
+            return
         
         match task["type"]:
             case "create":

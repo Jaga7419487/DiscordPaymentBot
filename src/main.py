@@ -1,12 +1,15 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 
 from constants import BOT_KEY, BOT_STATUS, BOT_DESCRIPTION, SUPPORTED_CURRENCY, TIMEZONE
 from encryption import decrypt_command, encrypt_command
 from firebase_manager import write_bot_log, write_log
-from flask_thread import start_flask
+from backend import start_fastapi
 from payment.payment_logic import create_user, delete_user, show_logs, show_payment_record, show_payment_logs, payment_system, terminate_worker
 from piano.piano_logic import piano_system
+from ping_worker import ping_bot
 from utils import *
 
 
@@ -21,7 +24,13 @@ class BotState:
         return self.active
 
 
-def run():
+async def start_background_tasks(bot):
+    """ Let the bot to handle background tasks """
+    bot.loop.create_task(ping_bot())
+    bot.loop.create_task(start_fastapi())
+
+
+def main():
     intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=intents)
     bot_state = BotState()
@@ -31,6 +40,7 @@ def run():
         print(f"Logged in bot --> {bot.user} (Call !switch to start/stop)")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
         write_bot_log()
+        await start_background_tasks(bot)
 
     @bot.command(hidden=True)
     async def switch(message: commands.Context):
@@ -158,11 +168,13 @@ def run():
         else:
             await message.channel.send("Bot is not started! Call !switch to start the bot")
 
+    @bot.event
+    async def on_logout():
+        terminate_worker()
+        print("Bot is shutting down...")
+
     bot.run(BOT_KEY)
 
 
 if __name__ == '__main__':
-    start_flask()
-    run()
-    terminate_worker()
-    print("Bot stopped!")
+    main()
