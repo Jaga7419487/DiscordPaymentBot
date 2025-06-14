@@ -18,8 +18,7 @@ The **Discord Payment Bot** is a tool designed to manage and record payments amo
 
 - `!info`: Display bot information and usage instructions.
 - `!list` or `!l`: List all payment records.
-- `!log [n]`: Show the latest `n` payment logs (default: 10).
-- `!logall [type] [n]`: Show all logs, optionally filtered by type and limited to `n` entries.
+- `!history [type] [n]`: Show all logs, optionally filtered by type and limited to `n` entries.
 - `!currencies`: Show all supported currencies.
 
 ### User Management

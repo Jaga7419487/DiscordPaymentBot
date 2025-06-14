@@ -173,8 +173,7 @@ BOT_DESCRIPTION = f"""
 `!list`: List all payment records, short: `!l`
 `!create [name]`: Create a new user (e.g., `!create personA`)
 `!delete [name]`: Delete a user with no debts (e.g., `!delete personA`)
-`!log`: Show the latest {LOG_SHOW_NUMBER} payment records
-`!logall`: Show all command logs
+`!history`: Show the history of command inputs
 `!currencies`: Show supported currencies
 `!encrypt`: Encrypt a message with a secret key
 `!decrypt`: Decrypt an encrypted message with a key

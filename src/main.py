@@ -8,7 +8,7 @@ from constants import BOT_KEY, BOT_STATUS, BOT_DESCRIPTION, SUPPORTED_CURRENCY, 
 from encryption import decrypt_command, encrypt_command
 from firebase_manager import write_bot_log, write_log
 from backend import start_fastapi
-from payment.payment_logic import create_user, delete_user, show_logs, show_payment_record, show_payment_logs, payment_system, terminate_worker
+from payment.payment_logic import create_user, delete_user, show_logs, show_payment_record, payment_system, terminate_worker
 from piano.piano_logic import piano_system
 from ping_worker import ping_bot
 from utils import *
@@ -18,7 +18,7 @@ class BotState:
     """ A class to manage the state of the bot. """
 
     def __init__(self):
-        self.active = False
+        self.active = True
 
     def toggle(self):
         self.active = not self.active
@@ -92,18 +92,9 @@ def start_bot():
         write_log('read', channel_to_text(message.channel), message.author.name, message.message.content,
                     message.message.created_at.astimezone(TIMEZONE))
 
-    @bot.command(help=f"Show the latest payment record inputs", brief="Latest payment record inputs")
+    @bot.command(help=f"Show the history of command inputs", brief="Latest command inputs")
     @require_active_bot
-    async def log(message: commands.Context):
-        response = await message.channel.send('loading...')
-        await response.edit(content=show_payment_logs(message.message.content.lower().split()))
-        write_log('read', channel_to_text(message.channel), message.author.name, message.message.content,
-                    message.message.created_at.astimezone(TIMEZONE))
-            
-    @bot.command(help=f"Show all the command inputs",
-                 brief="Latest payment record inputs")
-    @require_active_bot
-    async def logall(message: commands.Context):
+    async def history(message: commands.Context):
         response = await message.channel.send('loading...')
         await response.edit(content=show_logs(message.message.content.lower().split()))
         write_log('read', channel_to_text(message.channel), message.author.name, message.message.content,

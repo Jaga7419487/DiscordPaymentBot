@@ -81,7 +81,7 @@ def show_payment_record() -> str:
 
 
 def show_payment_logs(message: list[str]) -> str:
-    """ Shows the corresponding payment logs based on the input message
+    """ (Deprecated, use show_logs instead) Shows the corresponding payment logs based on the input message
     :param message: A list of input message strings
     :return: A formatted string of the latest payment logs
     """
@@ -101,39 +101,46 @@ def show_payment_logs(message: list[str]) -> str:
 
 
 def show_logs(message: list[str]) -> str:
-    """ Shows all the logs based on the input message
+    """ Shows all the history command inputs with optional filters
     :param message: A list of input message strings
     :return: A formatted string of all logs
     """
     # TODO: command/ui for showing all logs
     # no filter checking for now
     try:
-        command_type = None
+        command_type = 'payment'
         n = LOG_SHOW_NUMBER  # Default value
         
         if len(message) > 1:
-            # Case 1: !logall command_type number
+            # Case 1: !history command_type number
             if len(message) > 2 and message[1].isalpha() and message[2].isdigit():
                 command_type = message[1]
                 n = int(message[2]) if 0 < int(message[2]) < 50 else LOG_SHOW_NUMBER
             
-            # Case 2: !logall command_type
+            # Case 2: !history command_type
             elif message[1].isalpha():
                 command_type = message[1]
             
-            # Case 3: !logall number
+            # Case 3: !history number
             elif message[1].isdigit():
                 n = int(message[1]) if 0 < int(message[1]) < 50 else LOG_SHOW_NUMBER
         
-        # Case 4: !logall (default, handled by initial values)
+        # Case 4: !history (default, handled by initial values)
     except ValueError:
-        return B("Please enter a valid number between 1 and 50. Syntax: !logall [command_type] [number]")
+        return B("Please enter a valid number between 1 and 50. Syntax: !history [command_type] [number]")
+    
+    if command_type == 'all':
+        command_type = None
     
     logs = firebase_manager.get_logs(n, command_type)
     log_list = []
     for log in logs:
         log = log.to_dict()
-        log_list.append(f"[{log['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}] {B(log['channel'])} {log['enteredBy']}: {log['command']}")
+        if command_type == 'payment':
+            log_list.append(record_to_text(log['enteredBy'], log['payers'], log['operation'], log['payees'],
+                                           log['amount'], log['reason'], timestamp=log['timestamp'], cancelled=log['cancelled']))
+        else:
+            log_list.append(f"[{log['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}] {B(log['channel'])} {log['enteredBy']}: {log['command']}")
     return '\n'.join(reversed(log_list)) or B("No logs found")
 
 

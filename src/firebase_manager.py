@@ -41,7 +41,7 @@ def update_user_balance(name: str, amount: float, timestamp=datetime.now(TIMEZON
 
 
 def get_payment_logs(n):
-    """ Fetches the latest n payment records
+    """ (Deprecated, use get_logs instead) Fetches the latest n payment records
     :param n: Number of the latest payment logs to fetch
     :return: Iterable of latest n payment logs
     """
@@ -51,15 +51,16 @@ def get_payment_logs(n):
     return latest_payment_logs
 
 
-def get_logs(n, command_type=None):
-    """ Fetches logs accordingly """
-    if command_type and command_type == 'payment':
-        return get_payment_logs(n)
+def get_logs(n, command_type='payment'):
+    """ Fetches logs accordingly, default is payment logs
+    :param n: Number of the latest logs to fetch
+    :param command_type: The type of command to filter logs by
+    :return: Iterable of latest n logs of the specified type
+    """
     logs = logs_ref
     if command_type:
         logs = logs.where(filter=FieldFilter('type', '==', command_type))
-    logs = logs.order_by('timestamp', direction=firestore.Query.DESCENDING) \
-        .limit(n).stream()
+    logs = logs.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(n).stream()
     return logs
 
 
