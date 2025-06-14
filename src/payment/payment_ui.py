@@ -1,15 +1,7 @@
 import discord
 
-from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CURRENCY, VALID_CHARS_SET
+from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CURRENCY
 from utils import *
-
-
-def is_valid_amount(amt: str) -> bool:
-    return VALID_CHARS_SET.issuperset(amt)
-
-
-def amt_parser(amt: str) -> str:
-    return amt.replace('^', '**').replace('（', '(').replace('）', ')')
 
 
 def list_to_options(record: list):

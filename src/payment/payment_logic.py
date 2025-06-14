@@ -135,7 +135,6 @@ def show_logs(message: list[str]) -> str:
     logs = firebase_manager.get_logs(n, command_type)
     log_list = []
     for log in logs:
-        log = log.to_dict()
         if command_type == 'payment':
             log_list.append(record_to_text(log['enteredBy'], log['payers'], log['operation'], log['payees'],
                                            log['amount'], log['reason'], timestamp=log['timestamp'], cancelled=log['cancelled']))

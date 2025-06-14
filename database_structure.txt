@@ -21,6 +21,15 @@ bots (collection)
 ├── id (document)
 │   ├── startTime: <timestamp>
 
+bookkeeping (collection)
+├── id (document)
+│   ├── timestamp: <timestamp>
+│   ├── username: <username>
+│   ├── type: <expense | income>
+│   ├── category: <any>
+│   ├── name: <string>
+│   ├── amount: <number>
+
 type
 - payment: !pm
 - read: !info, !list, !help, !log, !showbackup, !status

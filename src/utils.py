@@ -1,4 +1,4 @@
-from constants import PAYMENT_CHANNEL_ID, EMOJI_MAPPING
+from constants import PAYMENT_CHANNEL_ID, EMOJI_MAPPING, VALID_CHARS_SET
 
 
 def B(text: str) -> str:
@@ -24,6 +24,14 @@ def channel_to_text(channel) -> str:
         return "private"
     else:
         return "others"
+
+
+def is_valid_amount(amt: str) -> bool:
+    return VALID_CHARS_SET.issuperset(amt)
+
+
+def amt_parser(amt: str) -> str:
+    return amt.replace('^', '**').replace('（', '(').replace('）', ')')
     
     
 def get_emoji(emoji_name: str) -> str:

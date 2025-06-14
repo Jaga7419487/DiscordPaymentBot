@@ -5,19 +5,24 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
+from typing import Literal
 
 from constants import FIREBASE_KEY, FIREBASE_KEY_PATH, TIMEZONE
 
 
 with open(FIREBASE_KEY_PATH, 'w') as f:
     json.dump(FIREBASE_KEY, f, indent=2)
-    
+
 cred = credentials.Certificate(FIREBASE_KEY_PATH)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 users_ref = db.collection('users')
 logs_ref = db.collection('logs')
+bot_ref = db.collection('bot')
+bookkeeping_ref = db.collection('bookkeeping')
+
+RecordType = Literal["expense", "income"]
 
 
 def firebase_to_dict() -> dict:
@@ -51,27 +56,27 @@ def get_payment_logs(n):
     return latest_payment_logs
 
 
-def get_logs(n, command_type='payment'):
+def get_logs(n, command_type='payment') -> list[dict]:
     """ Fetches logs accordingly, default is payment logs
     :param n: Number of the latest logs to fetch
     :param command_type: The type of command to filter logs by
-    :return: Iterable of latest n logs of the specified type
+    :return: list of latest n logs of the specified type
     """
     logs = logs_ref
     if command_type:
         logs = logs.where(filter=FieldFilter('type', '==', command_type))
     logs = logs.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(n).stream()
-    return logs
+    return [log.to_dict() for log in logs]
 
 
 def write_bot_log() -> None:
-    db.collection('bot').add({
+    bot_ref.add({
         'startTime': datetime.now(TIMEZONE),
     })
 
 
-def write_log(log_type: str, channel: str, entered_by: str, cmd: str, timestamp=datetime.now(TIMEZONE),
-              **kwargs) -> None:
+def write_log(log_type: str, channel: str, entered_by: str, cmd: str,
+              timestamp=datetime.now(TIMEZONE), **kwargs) -> firestore.DocumentReference:
     """
     Writes a log to the Firestore
     :param log_type: The type of the log (e.g., 'info', 'payment', 'encrypt')
@@ -121,3 +126,47 @@ def delete_user(name: str) -> None:
         user_ref.delete()
     else:
         raise ValueError(f"User {name} does not exist.")
+
+
+def add_bookkeeping_record(username: str, record_type: RecordType, category: str, name: str, amount: float,
+                           timestamp=datetime.now(TIMEZONE)) -> firestore.DocumentReference:
+    """
+    Adds a bookkeeping record to the Firestore 'bookkeeping' collection
+    :param username: The username of this record
+    :param record_type: 'expense' or 'income'
+    :param category: The category of the record
+    :param name: The name/description of the record
+    :param amount: The amount (number)
+    :param timestamp: The timestamp of the record
+    :return: The document reference of the created bookkeeping record
+    """
+    record_data = {
+        'timestamp': timestamp,
+        'username': username,
+        'type': record_type,
+        'category': category,
+        'name': name,
+        'amount': amount,
+    }
+    return bookkeeping_ref.add(record_data)[1]
+
+
+def get_bookkeeping_records(
+    n: int,
+    record_type: RecordType = None,
+    category: str = None,
+) -> list[dict]:
+    """
+    Retrieves the n bookkeeping records from Firestore with optional filters
+    :param n: Number of records to retrieve
+    :param record_type: 'expense' or 'income' (optional)
+    :param category: category string (optional)
+    :return: list of bookkeeping records (dicts)
+    """
+    query = bookkeeping_ref
+    if record_type:
+        query = query.where('type', '==', record_type)
+    if category:
+        query = query.where('category', '==', category)
+    docs = query.limit(n).stream()
+    return [doc.to_dict() for doc in docs]
