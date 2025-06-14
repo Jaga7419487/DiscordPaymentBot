@@ -1,4 +1,4 @@
-from constants import PAYMENT_CHANNEL_ID
+from constants import PAYMENT_CHANNEL_ID, EMOJI_MAPPING
 
 
 def B(text: str) -> str:
@@ -24,3 +24,11 @@ def channel_to_text(channel) -> str:
         return "private"
     else:
         return "others"
+    
+    
+def get_emoji(emoji_name: str) -> str:
+    """Return the emoji for the given name
+    :param emoji_name: The name of the emoji
+    :return: The emoji character or a question mark if not found
+    """
+    return EMOJI_MAPPING.get(emoji_name.upper(), EMOJI_MAPPING['?'])

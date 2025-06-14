@@ -30,7 +30,7 @@ async def start_background_tasks(bot):
     bot.loop.create_task(start_fastapi())
 
 
-def main():
+def start_bot():
     intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=intents)
     bot_state = BotState()
@@ -168,6 +168,16 @@ def main():
         else:
             await message.channel.send("Bot is not started! Call !switch to start the bot")
 
+    @bot.command(hidden=True)
+    async def emoji(message: commands.Context):
+        if bot_state.active:
+            emoji = str(message.message.content.upper().split()[-1])
+            await message.message.add_reaction(get_emoji(emoji))
+            write_log('others', channel_to_text(message.channel), message.author.name, message.message.content,
+                      message.message.created_at.astimezone(TIMEZONE))
+        else:
+            await message.channel.send("Bot is not started! Call !switch to start the bot")
+
     @bot.event
     async def on_logout():
         terminate_worker()
@@ -177,4 +187,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    start_bot()
