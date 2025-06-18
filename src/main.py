@@ -9,6 +9,7 @@ from constants import (
     BOT_DESCRIPTION,
     BOT_KEY,
     BOT_STATUS,
+    INIT_STATE,
     PAYMENT_CHANNEL_ID,
     SUPPORTED_CURRENCY,
     TIMEZONE,
@@ -32,7 +33,7 @@ class BotState:
     """ A class to manage the state of the bot. """
 
     def __init__(self):
-        self.active = False
+        self.active = INIT_STATE
 
     def toggle(self):
         self.active = not self.active

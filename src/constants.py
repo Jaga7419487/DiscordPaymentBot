@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # bot
+INIT_STATE = os.getenv('INIT_STATE', False)
 BOT_KEY = os.getenv('BOT_KEY')
 PAYMENT_CHANNEL_ID = int(os.getenv('PAYMENT_CHANNEL_ID'))
 LOG_CHANNEL_ID = int(os.getenv('LOG_CHANNEL_ID'))
