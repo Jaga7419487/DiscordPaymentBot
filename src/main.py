@@ -14,6 +14,7 @@ from constants import (
     PAYMENT_CHANNEL_ID,
     SUPPORTED_CURRENCY,
     TIMEZONE,
+    USER_MAPPING,
 )
 from encryption import decrypt_command, encrypt_command
 from firebase_manager import write_bot_log, write_log
@@ -57,6 +58,12 @@ def start_bot():
     bot = commands.Bot(command_prefix='!', intents=intents)
     bot_state = BotState()
     
+    async def notify_error(ctx: commands.Context, error: Exception):
+        user_id = USER_MAPPING['jaga']
+        await ctx.send(f"Hey <@{user_id}>, your code bug zho")
+        user = await bot.fetch_user(user_id)
+        await user.send(f"Error in command {ctx.command}: {error}")
+    
     def command_wrapper(bot_active=True, in_payment_channel=False, command_type=None):
         """ A wrapper to wrap commands with common checks and logging.
         :param bot_active: Whether the bot is active or not.
@@ -72,11 +79,15 @@ def start_bot():
                 if in_payment_channel and ctx.channel.id != PAYMENT_CHANNEL_ID:
                     await ctx.send("Please input the record in the **payment** channel")
                     return
-                await func(ctx, *args, **kwargs)
-                logging.info(f"Command executed: {ctx.message.content} by {ctx.author.name} in {ctx.channel.name}")
-                if command_type:
-                    write_log(command_type, channel_to_text(ctx.channel), ctx.author.name, ctx.message.content,
-                            ctx.message.created_at.astimezone(TIMEZONE))
+                try:
+                    await func(ctx, *args, **kwargs)
+                    logging.info(f"Command executed: {ctx.message.content} by {ctx.author.name} in {ctx.channel.name}")
+                    if command_type:
+                        write_log(command_type, channel_to_text(ctx.channel), ctx.author.name, ctx.message.content,
+                                ctx.message.created_at.astimezone(TIMEZONE))
+                except Exception as e:
+                    await notify_error(ctx, e)
+                    logging.error(f"Error in command {ctx.command}: {e}")
             return wrapper
         return decorator
 
