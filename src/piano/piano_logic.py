@@ -10,7 +10,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 import piano.piano_ui as piano_ui
 
-
 link = 'https://w5.ab.ust.hk/wrm/app/login?path=/bookings/add/music-room/timetable'  # link to be opened
 
 chrome_options = Options()
@@ -95,7 +94,7 @@ async def piano_system(bot: commands.Bot, message):
                     for path in paths[4:]:
                         check_and_click(path)
                     return True  # TODO: add condition for successful booking
-                except RuntimeError as err:
+                except RuntimeError:
                     if execute_booking():
                         return True
                     return False

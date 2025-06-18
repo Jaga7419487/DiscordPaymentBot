@@ -1,5 +1,5 @@
-import httpx
 import asyncio
+import httpx
 from constants import KOYEB_PUBLIC_LINK
 
 

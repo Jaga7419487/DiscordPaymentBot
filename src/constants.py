@@ -156,7 +156,7 @@ EMOJI_MAPPING = {
     "CROSS": "❌",
 }
 
-BOT_DESCRIPTION = f"""
+BOT_DESCRIPTION = """
 # Discord Payment Bot
 ## Purpose: Manage and record payments among a group
 **Workflow:**

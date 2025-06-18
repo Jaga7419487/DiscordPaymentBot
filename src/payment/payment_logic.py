@@ -3,12 +3,20 @@ import threading
 from typing import List, Tuple, Union
 
 import requests
+
 import firebase_manager
-
-from constants import *
-from payment.payment_ui import InputView, UndoView, is_valid_amount, amt_parser
-from utils import *
-
+from constants import (
+    LOG_CHANNEL_ID,
+    LOG_SHOW_NUMBER,
+    ROUND_OFF_DP,
+    SUPPORTED_CURRENCY,
+    TIMEZONE,
+    TRADER_MADE_API_KEY,
+    UNIFIED_CURRENCY,
+    USER_MAPPING,
+)
+from payment.payment_ui import InputView, UndoView, amt_parser, is_valid_amount
+from utils import B, I, channel_to_text
 
 payment_records = firebase_manager.firebase_to_dict()
 user_list = list(payment_records.keys())
@@ -205,7 +213,7 @@ def exchange_currency(from_cur: str, amount: float) -> tuple[float, float]:
     url = f"https://marketdata.tradermade.com/api/v1/convert?api_key={TRADER_MADE_API_KEY}&" \
             f"from={from_cur}&to={to_cur}&amount=1"
     response = requests.get(url)
-    rate = response.json()['quote']
+    rate = response.json()['quotes']
     return amount * rate, rate
 
 
@@ -233,10 +241,10 @@ def payment_handling(ppl_to_pay: str, ppl_get_paid: str, amount: float, timestam
         """ Performs a single owe operation between two persons """
         if person_to_pay == person_get_paid:
             return ''
-        if person_to_pay == None:
+        if person_to_pay is None:
             target = person_get_paid
             add = True
-        elif person_get_paid == None:
+        elif person_get_paid is None:
             target = person_to_pay
             add = False
         else:

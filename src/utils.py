@@ -1,4 +1,4 @@
-from constants import PAYMENT_CHANNEL_ID, EMOJI_MAPPING, VALID_CHARS_SET
+from constants import EMOJI_MAPPING, PAYMENT_CHANNEL_ID, VALID_CHARS_SET
 
 
 def B(text: str) -> str:

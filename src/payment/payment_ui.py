@@ -1,7 +1,7 @@
 import discord
 
-from constants import MENU_TIMEOUT, UNDO_TIMEOUT, UNIFIED_CURRENCY, SUPPORTED_CURRENCY
-from utils import *
+from constants import MENU_TIMEOUT, SUPPORTED_CURRENCY, UNDO_TIMEOUT, UNIFIED_CURRENCY
+from utils import B, amt_parser, is_valid_amount
 
 
 def list_to_options(record: list):
@@ -320,7 +320,6 @@ class UndoView(discord.ui.View):
         self.undo_btn = UndoButton()
         self.add_item(self.undo_btn)
         
-        test_text = "`stickmanjc: 1 owe 2 $1.0`\n-# Updated records:\n-# 1 needs to pay: $7.0 → $8.0\n-# 2 should receive: $7.0 → $8.0"
         self.embed_text = discord.Embed(title="Payment record successfully updated!", description=response_content)
 
         if show_edit_btn:

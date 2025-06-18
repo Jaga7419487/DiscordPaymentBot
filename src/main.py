@@ -1,23 +1,38 @@
-import discord
-from discord.ext import commands
 from functools import wraps
 
-from bookkeeping import add_bookkeeping_record, show_bookkeeping_records
-from constants import BOT_KEY, BOT_STATUS, BOT_DESCRIPTION, SUPPORTED_CURRENCY, TIMEZONE
+import discord
+from discord.ext import commands
+
+from backend import start_fastapi
+from bookkeeping import add_bookkeeping_record
+from constants import (
+    BOT_DESCRIPTION,
+    BOT_KEY,
+    BOT_STATUS,
+    PAYMENT_CHANNEL_ID,
+    SUPPORTED_CURRENCY,
+    TIMEZONE,
+)
 from encryption import decrypt_command, encrypt_command
 from firebase_manager import write_bot_log, write_log
-from backend import start_fastapi
-from payment.payment_logic import create_user, delete_user, show_logs, show_payment_record, payment_system, terminate_worker
+from payment.payment_logic import (
+    create_user,
+    delete_user,
+    payment_system,
+    show_logs,
+    show_payment_record,
+    terminate_worker,
+)
 from piano.piano_logic import piano_system
 from ping_worker import ping_bot
-from utils import *
+from utils import B, channel_to_text, get_emoji
 
 
 class BotState:
     """ A class to manage the state of the bot. """
 
     def __init__(self):
-        self.active = True
+        self.active = False
 
     def toggle(self):
         self.active = not self.active
@@ -91,7 +106,7 @@ def start_bot():
     async def show(message: commands.Context):
         await message.channel.send(show_payment_record())
 
-    @bot.command(help=f"Show the history of command inputs", brief="Latest command inputs")
+    @bot.command(help="Show the history of command inputs", brief="Latest command inputs")
     @command_wrapper(command_type='read')
     async def history(message: commands.Context):
         response = await message.channel.send('loading...')

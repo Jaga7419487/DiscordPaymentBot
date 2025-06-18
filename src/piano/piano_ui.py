@@ -397,6 +397,7 @@ class View(discord.ui.View):
 
 if __name__ == "__main__":
     from discord.ext import commands
+
     from constants import BOT_KEY
 
     intents = discord.Intents.all()
