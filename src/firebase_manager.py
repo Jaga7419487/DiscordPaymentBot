@@ -39,7 +39,7 @@ def update_user_balance(name: str, amount: float, timestamp=datetime.now(TIMEZON
     """
     users_ref.document(name).set({
         'balance': amount,
-        'lastUpdated': timestamp,
+        'lastUpdated': timestamp.astimezone(TIMEZONE),
     }, merge=True)
 
 
@@ -87,7 +87,7 @@ def write_log(log_type: str, channel: str, entered_by: str, cmd: str,
     """
     log_data = {
         'type': log_type,
-        'timestamp': timestamp,
+        'timestamp': timestamp.astimezone(TIMEZONE),
         'channel': channel,
         'enteredBy': entered_by,
         'command': cmd,
@@ -111,7 +111,7 @@ def create_user(name: str, timestamp=datetime.now(TIMEZONE)) -> None:
     """
     users_ref.document(name).set({
         'balance': 0,
-        'lastUpdated': timestamp,
+        'lastUpdated': timestamp.astimezone(TIMEZONE),
     })
 
 
@@ -139,7 +139,7 @@ def add_bookkeeping_record(username: str, record_type: RecordType, category: str
     :return: The document reference of the created bookkeeping record
     """
     record_data = {
-        'timestamp': timestamp,
+        'timestamp': timestamp.astimezone(TIMEZONE),
         'username': username,
         'type': record_type,
         'category': category,
