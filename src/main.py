@@ -129,7 +129,7 @@ def start_bot():
     @bot.command(name='currencies', help="Show all the supported currencies", brief="All supported currencies")
     @command_wrapper(command_type='read')
     async def show_all_currencies(message: commands.Context):
-        currency_text = '\n'.join([f"{B(key)}: {value}" for key, value in SUPPORTED_CURRENCY.items()])
+        currency_text = '\n'.join([f"{key}: {value}" for key, value in SUPPORTED_CURRENCY.items()])
         await message.channel.send(currency_text)
 
     @bot.command(help="Create a new user with a name", brief="Create a new user")
