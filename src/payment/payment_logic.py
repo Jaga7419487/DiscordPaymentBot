@@ -6,12 +6,13 @@ import requests
 
 import firebase_manager
 from constants import (
+    EXCHANGE_RATE_ROUND_OFF_DP,
     LOG_CHANNEL_ID,
     LOG_SHOW_NUMBER,
+    OPEN_EXCHANGE_RATE_API_KEY,
     ROUND_OFF_DP,
     SUPPORTED_CURRENCY,
     TIMEZONE,
-    TRADER_MADE_API_KEY,
     UNIFIED_CURRENCY,
     USER_MAPPING,
 )
@@ -211,11 +212,13 @@ def exchange_currency(from_cur: str, amount: float) -> tuple[float, float]:
     if from_cur == UNIFIED_CURRENCY:
         return amount, 1.0
     to_cur = UNIFIED_CURRENCY
-    url = f"https://marketdata.tradermade.com/api/v1/convert?api_key={TRADER_MADE_API_KEY}&" \
-            f"from={from_cur}&to={to_cur}&amount=1"
-    response = requests.get(url)
-    rate = response.json()['quotes']
-    return amount * rate, rate
+    currencies = to_cur + '%2C' + from_cur
+    url = f"https://openexchangerates.org/api/latest.json?app_id={OPEN_EXCHANGE_RATE_API_KEY}&symbols={currencies}"
+    headers = {"accept": "application/json"}
+    response = requests.get(url, headers=headers)
+    rates = response.json().get('rates', {})
+    rate = rates.get(to_cur, 0) / rates.get(from_cur, 1)
+    return amount * rate, round(rate, EXCHANGE_RATE_ROUND_OFF_DP)
 
 
 def synchronize_payment_records(users: list[str], timestamp) -> None:
