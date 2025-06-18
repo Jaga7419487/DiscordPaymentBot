@@ -46,6 +46,7 @@ def firebase_worker():
     while True:
         task = firebase_queue.get()
         if task is None:
+            firebase_queue.task_done()
             return
         
         match task["type"]:
@@ -522,7 +523,7 @@ def terminate_worker():
     """ Terminates the firebase worker thread """
     firebase_queue.put(None)
     firebase_queue.join()
-    
+
 
 payment_thread = threading.Thread(target=firebase_worker, daemon=False)
 payment_thread.start()

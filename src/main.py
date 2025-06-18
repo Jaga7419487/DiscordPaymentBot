@@ -1,3 +1,4 @@
+import logging
 from functools import wraps
 
 import discord
@@ -22,11 +23,16 @@ from payment.payment_logic import (
     payment_system,
     show_logs,
     show_payment_record,
-    terminate_worker,
 )
 from piano.piano_logic import piano_system
 from ping_worker import ping_bot
 from utils import B, channel_to_text, get_emoji
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [%(levelname)s] %(filename)s:%(lineno)d - %(funcName)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 
 class BotState:
@@ -67,6 +73,7 @@ def start_bot():
                     await ctx.send("Please input the record in the **payment** channel")
                     return
                 await func(ctx, *args, **kwargs)
+                logging.info(f"Command executed: {ctx.message.content} by {ctx.author.name} in {ctx.channel.name}")
                 if command_type:
                     write_log(command_type, channel_to_text(ctx.channel), ctx.author.name, ctx.message.content,
                             ctx.message.created_at.astimezone(TIMEZONE))
@@ -75,15 +82,10 @@ def start_bot():
 
     @bot.event
     async def on_ready():
-        print(f"Logged in bot --> {bot.user} (Call !switch to start/stop)")
+        logging.info(f"Bot started as {bot.user} (Call !switch to start/stop)")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
         write_bot_log()
         await start_background_tasks(bot)
-        
-    @bot.event
-    async def on_logout():
-        terminate_worker()
-        print("Bot is shutting down...")
 
     @bot.command(hidden=True)
     @command_wrapper(bot_active=False, command_type='manage')
