@@ -31,13 +31,13 @@ from utils import B, channel_to_text, get_emoji
 
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(asctime)s] [%(levelname)s] %(filename)s:%(lineno)d - %(funcName)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format="[%(asctime)s] [%(levelname)s] %(filename)s:%(lineno)d - %(funcName)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
 
 class BotState:
-    """ A class to manage the state of the bot. """
+    """A class to manage the state of the bot."""
 
     def __init__(self):
         self.active = INIT_STATE
@@ -48,28 +48,29 @@ class BotState:
 
 
 async def start_background_tasks(bot):
-    """ Let the bot to handle background tasks """
+    """Let the bot to handle background tasks"""
     bot.loop.create_task(ping_bot())
     bot.loop.create_task(start_fastapi())
 
 
 def start_bot():
     intents = discord.Intents.all()
-    bot = commands.Bot(command_prefix='!', intents=intents)
+    bot = commands.Bot(command_prefix="!", intents=intents)
     bot_state = BotState()
-    
+
     async def notify_error(ctx: commands.Context, error: Exception):
-        user_id = USER_MAPPING['jaga']
+        user_id = USER_MAPPING["jaga"]
         await ctx.send(f"Hey <@{user_id}>, your code bug zho")
         user = await bot.fetch_user(user_id)
         await user.send(f"Error in command {ctx.command}: {error}")
-    
+
     def command_wrapper(bot_active=True, in_payment_channel=False, command_type=None):
-        """ A wrapper to wrap commands with common checks and logging.
+        """A wrapper to wrap commands with common checks and logging.
         :param bot_active: Whether the bot is active or not.
         :param in_payment_channel: Whether the command should be executed in the payment channel.
         :param command_type: The type of command to log.
         """
+
         def decorator(func):
             @wraps(func)
             async def wrapper(ctx: commands.Context, *args, **kwargs):
@@ -81,14 +82,27 @@ def start_bot():
                     return
                 try:
                     await func(ctx, *args, **kwargs)
-                    logging.info(f"Command executed: {ctx.message.content} by {ctx.author.name} in {ctx.channel.name}")
+                    # Use a safe accessor for channel name. DMChannel objects do not have a 'name' attribute.
+                    channel_name = getattr(
+                        ctx.channel, "name", None
+                    ) or channel_to_text(ctx.channel)
+                    logging.info(
+                        f"Command executed: {ctx.message.content} by {ctx.author.name} in {channel_name}"
+                    )
                     if command_type:
-                        write_log(command_type, channel_to_text(ctx.channel), ctx.author.name, ctx.message.content,
-                                ctx.message.created_at.astimezone(TIMEZONE))
+                        write_log(
+                            command_type,
+                            channel_to_text(ctx.channel),
+                            ctx.author.name,
+                            ctx.message.content,
+                            ctx.message.created_at.astimezone(TIMEZONE),
+                        )
                 except Exception as e:
                     await notify_error(ctx, e)
                     logging.error(f"Error in command {ctx.command}: {e}")
+
             return wrapper
+
         return decorator
 
     @bot.event
@@ -99,50 +113,62 @@ def start_bot():
         await start_background_tasks(bot)
 
     @bot.command(hidden=True)
-    @command_wrapper(bot_active=False, command_type='manage')
+    @command_wrapper(bot_active=False, command_type="manage")
     async def switch(message: commands.Context):
         state = bot_state.toggle()
         await message.channel.send(B(f"Bot {'started' if state else 'stopped'}!"))
 
     @bot.command(hidden=True)
-    @command_wrapper(command_type='read')
+    @command_wrapper(command_type="read")
     async def status(message: commands.Context):
         await message.channel.send("Bot is active!")
 
     @bot.command(help="Show the bot information", brief="Bot information")
-    @command_wrapper(command_type='read')
+    @command_wrapper(command_type="read")
     async def info(message: commands.Context):
         await message.channel.send(BOT_DESCRIPTION)
 
-    @bot.command(name="list", aliases=['l', 'L'], help="List out all payment records stored in the bot",
-                 brief="List all payment records")
-    @command_wrapper(command_type='read')
+    @bot.command(
+        name="list",
+        aliases=["l", "L"],
+        help="List out all payment records stored in the bot",
+        brief="List all payment records",
+    )
+    @command_wrapper(command_type="read")
     async def show(message: commands.Context):
         await message.channel.send(show_payment_record())
 
-    @bot.command(help="Show the history of command inputs", brief="Latest command inputs")
-    @command_wrapper(command_type='read')
+    @bot.command(
+        help="Show the history of command inputs", brief="Latest command inputs"
+    )
+    @command_wrapper(command_type="read")
     async def history(message: commands.Context):
-        response = await message.channel.send('loading...')
+        response = await message.channel.send("loading...")
         await response.edit(content=show_logs(message.message.content.lower().split()))
 
-    @bot.command(name='currencies', help="Show all the supported currencies", brief="All supported currencies")
-    @command_wrapper(command_type='read')
+    @bot.command(
+        name="currencies",
+        help="Show all the supported currencies",
+        brief="All supported currencies",
+    )
+    @command_wrapper(command_type="read")
     async def show_all_currencies(message: commands.Context):
-        currency_text = '\n'.join([f"{key}: {value}" for key, value in SUPPORTED_CURRENCY.items()])
+        currency_text = "\n".join(
+            [f"{key}: {value}" for key, value in SUPPORTED_CURRENCY.items()]
+        )
         await message.channel.send(currency_text)
 
     @bot.command(help="Create a new user with a name", brief="Create a new user")
-    @command_wrapper(in_payment_channel=True, command_type='manage')
+    @command_wrapper(in_payment_channel=True, command_type="manage")
     async def create(message: commands.Context):
-        response = await message.channel.send('loading...')
+        response = await message.channel.send("loading...")
         result = await create_user(bot, message)
         await response.edit(content=result)
 
     @bot.command(help="Delete a user if he has no debts", brief="Delete a user")
-    @command_wrapper(in_payment_channel=True, command_type='manage')
+    @command_wrapper(in_payment_channel=True, command_type="manage")
     async def delete(message: commands.Context):
-        response = await message.channel.send('loading...')
+        response = await message.channel.send("loading...")
         result = await delete_user(bot, message)
         await response.edit(content=result)
 
@@ -150,35 +176,39 @@ def start_bot():
     @command_wrapper(in_payment_channel=True)
     async def pm(message: commands.Context):
         await payment_system(bot, message)
-            
-    @bot.command(aliases=['enc'], help="Encrypt a string with a key", brief="Encrypt a string")
-    @command_wrapper(command_type='others')
+
+    @bot.command(
+        aliases=["enc"], help="Encrypt a string with a key", brief="Encrypt a string"
+    )
+    @command_wrapper(command_type="others")
     async def encrypt(message: commands.Context):
         await encrypt_command(message)
-            
-    @bot.command(aliases=['dec'], help="Decrypt a string with a key", brief="Decrypt a string")
-    @command_wrapper(command_type='others')
+
+    @bot.command(
+        aliases=["dec"], help="Decrypt a string with a key", brief="Decrypt a string"
+    )
+    @command_wrapper(command_type="others")
     async def decrypt(message: commands.Context):
         await decrypt_command(message)
-            
+
     @bot.command(hidden=True)
-    @command_wrapper(command_type='others')
+    @command_wrapper(command_type="others")
     async def piano(message: commands.Context):
         await piano_system(bot, message)
 
     @bot.command(hidden=True)
-    @command_wrapper(command_type='others')
+    @command_wrapper(command_type="others")
     async def emoji(message: commands.Context):
         emoji = str(message.message.content.upper().split()[-1])
         await message.message.add_reaction(get_emoji(emoji))
 
     @bot.command(hidden=True)
-    @command_wrapper(command_type='others')
+    @command_wrapper(command_type="others")
     async def log(message: commands.Context):
         await message.send(add_bookkeeping_record(message))
 
     bot.run(BOT_KEY)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     start_bot()
