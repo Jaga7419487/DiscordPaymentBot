@@ -153,10 +153,11 @@ def start_bot():
     )
     @command_wrapper(command_type="read")
     async def show_all_currencies(message: commands.Context):
-        currency_text = "\n".join(
-            [f"{key}: {value}" for key, value in SUPPORTED_CURRENCY.items()]
+        response_text = (
+            "### Supported currencies ([Details](https://www.iban.com/currency-codes)):\n"
+            + f"```\n{', '.join([key for key in SUPPORTED_CURRENCY.keys()])}\n```"
         )
-        await message.channel.send(currency_text)
+        await message.channel.send(response_text)
 
     @bot.command(help="Create a new user with a name", brief="Create a new user")
     @command_wrapper(in_payment_channel=True, command_type="manage")
