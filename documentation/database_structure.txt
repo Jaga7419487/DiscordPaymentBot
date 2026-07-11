@@ -5,7 +5,7 @@ users (collection)
 
 logs (collection)
 ├── logId (document)
-│   ├── type: <payment | read | manage | encrypt | piano>
+│   ├── type: <payment | read | manage | encrypt>
 │   ├── timestamp: <timestamp>
 │   ├── channel: <payment | private | others>
 │   ├── enteredBy: <username>
@@ -34,4 +34,4 @@ type
 - payment: !pm
 - read: !info, !list, !help, !log, !showbackup, !status
 - manage: !create, !delete, !backup, !switch, undo
-- others: !encrypt, !decrypt, !piano
+- others: !encrypt, !decrypt

@@ -25,7 +25,6 @@ from payment.payment_logic import (
     show_logs,
     show_payment_record,
 )
-from piano.piano_logic import piano_system
 from ping_worker import ping_bot
 from utils import B, channel_to_text, get_emoji
 
@@ -191,11 +190,6 @@ def start_bot():
     @command_wrapper(command_type="others")
     async def decrypt(message: commands.Context):
         await decrypt_command(message)
-
-    @bot.command(hidden=True)
-    @command_wrapper(command_type="others")
-    async def piano(message: commands.Context):
-        await piano_system(bot, message)
 
     @bot.command(hidden=True)
     @command_wrapper(command_type="others")
