@@ -73,21 +73,37 @@ def firebase_worker():
         firebase_queue.task_done()
 
 
-def show_payment_record() -> str:
+def show_payment_record(author_id=None) -> str:
     """Shows the payment records in a formatted string
+    :param author_id: The Discord user id of the command sender, if available
     :return: A formatted string of payment records
     """
     zero = take_money = need_pay = ""
     sum = 0
+    mapped_name = next(
+        (name for name, user_id in USER_MAPPING.items() if user_id == str(author_id)),
+        None,
+    )
 
     for name, amount in payment_records.items():
         sum += amount
+        record_text = ""
         if amount == 0:
-            zero += B(name) + " doesn't need to pay\n"
+            record_text = B(name) + " doesn't need to pay\n"
         elif amount > 0:
-            take_money += f"{B(name)} should receive ${I(amount)}\n"
+            record_text = f"{B(name)} should receive ${I(amount)}\n"
         else:
-            need_pay += f"{B(name)} needs to pay ${I(-amount)}\n"
+            record_text = f"{B(name)} needs to pay ${I(-amount)}\n"
+
+        if name == mapped_name:
+            record_text = f"> {record_text.rstrip()}\n"
+
+        if amount == 0:
+            zero += record_text
+        elif amount > 0:
+            take_money += record_text
+        else:
+            need_pay += record_text
 
     if round(sum, 5) != 0:
         return "Error in records! Sum of payments is not zero"

@@ -135,7 +135,7 @@ def start_bot():
     )
     @command_wrapper(command_type="read")
     async def show(message: commands.Context):
-        await message.channel.send(show_payment_record())
+        await message.channel.send(show_payment_record(message.author.id))
 
     @bot.command(
         help="Show the history of command inputs", brief="Latest command inputs"
