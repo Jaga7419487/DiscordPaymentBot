@@ -355,7 +355,6 @@ def payment_handling(
                 update += owe(each_to_pay, None) + owe(None, each_get_paid)
                 update += "\n" if len(paid_list) > 1 else ""
             update += "\n" if len(pay_list) > 1 else ""
-        # update = update[:-3] + update[-3:][:update[-3:].index(">")] if ">" in update[-3:] else update
         synchronize_payment_records(pay_list + paid_list, timestamp)
         return update
     except KeyError:
@@ -401,37 +400,37 @@ async def payment_system(bot, message, prev_input=None) -> None:
         # left users
         ppl_to_pay = msg[1].lower()
         if any(ppl not in user_list for ppl in ppl_to_pay.split(",")):
-            return B("Invalid input for provider!")
+            return "Invalid input for provider!"
 
         # operation
         operation = msg[2].lower()
         if operation not in ["owe", "payback"]:
-            return B("Invalid payment operation!")
+            return "Invalid payment operation!"
         operation_owe = operation == "owe"
 
         # right user
         ppl_get_paid = msg[3].lower()
         if ppl_get_paid not in user_list:
-            return B("Invalid input for receiver!")
+            return "Invalid input for receiver!"
         if ppl_get_paid in ppl_to_pay.split(","):
-            return B("Invalid input: one cannot owe himself!")
+            return "Invalid input: one cannot owe himself!"
 
         # amount
         if not is_valid_amount(msg[4]):
-            return B("Invalid amount!")
+            return "Invalid amount!"
         try:
             amount: float = round(eval(amt_parser(msg[4])), ROUND_OFF_DP)
         except ZeroDivisionError:
-            return B("Invalid amount: Don't divide zero la...")
+            return "Invalid amount: Don't divide zero la..."
         except (ValueError, SyntaxError):
-            return B("What have you entered for the amount .-.")
+            return "What have you entered for the amount .-."
         if amount == 0.0:
-            return B("Invalid amount: amount cannot be zero!")
+            return "Invalid amount: amount cannot be zero!"
 
         # optional args
         parse_result = parse_optional_args(msg[5:])
         if not parse_result:
-            return B("Invalid currency!")
+            return "Invalid currency!"
         service_charge, currency, reason = parse_result
 
         return {
@@ -461,13 +460,16 @@ async def payment_system(bot, message, prev_input=None) -> None:
             menu = InputView(user_list, ptp, op, pgp, amt, sc, cur, reason)
 
         menu.update_description()
-        menu.message = await message.send(view=menu, embed=menu.embed_text)
+        menu.message = await message.reply(view=menu, embed=menu.embed_text)
         await menu.wait()
 
         if menu.cancelled:
             return "Process cancelled!"
         if not menu.finished:
-            return f"**> Input closed. <@{message.author.id}> bro gone where?**"
+            await menu.message.reply(
+                B(f"> Input closed. <@{message.author.id}> bro gone where?")
+            )
+            return ""
 
         return {
             "ppl_to_pay": menu.pay_text,
@@ -499,7 +501,8 @@ async def payment_system(bot, message, prev_input=None) -> None:
         parsed_input = await parse_ui_input()
 
     if isinstance(parsed_input, str):  # error enountered
-        await message.channel.send(B(parsed_input))
+        if parsed_input:
+            await message.reply(B(parsed_input))
         return
 
     ppl_to_pay = parsed_input["ppl_to_pay"]
@@ -550,7 +553,7 @@ async def payment_system(bot, message, prev_input=None) -> None:
 
     # send the UNDO view before time-consuming operations
     undo_view = UndoView(not cmd_input, response_content)
-    undo_view.message = await message.send(view=undo_view, embed=undo_view.embed_text)
+    undo_view.message = await message.reply(view=undo_view, embed=undo_view.embed_text)
 
     await log_channel.send(log_content)
     log_ref = firebase_manager.write_log(
@@ -577,7 +580,7 @@ async def payment_system(bot, message, prev_input=None) -> None:
             actual_amount,
             undo_view.cancelled_at.astimezone(TIMEZONE),
         )
-        await message.channel.send(
+        await undo_view.message.reply(
             B(
                 "Undo has been executed for editing!\n-# Loading new UI panel for editing..."
             )
@@ -613,7 +616,7 @@ async def payment_system(bot, message, prev_input=None) -> None:
             actual_amount,
             undo_view.cancelled_at.astimezone(TIMEZONE),
         )
-        await message.channel.send(B("Undo has been executed!"))
+        await undo_view.message.reply(B("Undo has been executed!"))
         undo_log_content = f"{undo_view.undo_user}: __UNDO__ **[**{log_content}**]**"
         await log_channel.send(undo_log_content)
         firebase_manager.update_log(log_ref, cancelled=True)
