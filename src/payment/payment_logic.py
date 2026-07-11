@@ -467,7 +467,7 @@ async def payment_system(bot, message, prev_input=None) -> None:
         if menu.cancelled:
             return "Process cancelled!"
         if not menu.finished:
-            return "**> Input closed. You take too long!**"
+            return f"**> Input closed. <@{message.author.id}> bro gone where?**"
 
         return {
             "ppl_to_pay": menu.pay_text,
