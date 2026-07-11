@@ -35,17 +35,22 @@ def record_to_text(
     currency="",
     cancelled=False,
 ) -> str:
-    """Converts the payment record to a formatted string
-    :param author: The author of the payment record
-    :param payers: The left user(s) who owe money
-    :param operation: The operation (owe/payback) of the payment
-    :param payees: The right user(s) who receive money
-    :param amount: The amount of money owed/paid
-    :param reason: The reason for the payment
-    :param timestamp: The timestamp of the payment record (for logging)
-    :param currency: The currency of the payment record (for payment)
-    :param cancelled: Whether the payment record is cancelled (for logging)
-    :return: A formatted string representing the payment record
+    """
+    Format a payment record for display.
+
+    Args:
+        author: The author of the payment record.
+        payers: The left user(s) who owe money.
+        operation: The operation of the payment (owe/payback).
+        payees: The right user(s) who receive money.
+        amount: The amount of money owed or paid.
+        reason: The reason for the payment.
+        timestamp: The timestamp of the payment record.
+        currency: The currency of the payment record.
+        cancelled: Whether the payment record is cancelled.
+
+    Returns:
+        str: The formatted payment record.
     """
     time_text = f"[{timestamp.strftime('%Y-%m-%d %H:%M:%S')}] " if timestamp else ""
     cancelled_text = B(" Cancelled ") if cancelled else ""
@@ -74,9 +79,14 @@ def firebase_worker():
 
 
 def show_payment_record(author_id=None) -> str:
-    """Shows the payment records in a formatted string
-    :param author_id: The Discord user id of the command sender, if available
-    :return: A formatted string of payment records
+    """
+    Shows the payment records in a formatted string.
+    
+    Args:
+        author_id (int, optional): The Discord user id of the command sender. Defaults to None.
+    
+    Returns:
+        str: A formatted string of payment records, or an error message.
     """
     zero = take_money = need_pay = ""
     sum = 0
@@ -113,9 +123,14 @@ def show_payment_record(author_id=None) -> str:
 
 
 def show_payment_logs(message: list[str]) -> str:
-    """(Deprecated, use show_logs instead) Shows the corresponding payment logs based on the input message
-    :param message: A list of input message strings
-    :return: A formatted string of the latest payment logs
+    """
+    Show the latest payment logs.
+
+    Args:
+        message: A split command message.
+
+    Returns:
+        str: The formatted latest payment logs.
     """
     try:
         n = (
@@ -147,9 +162,14 @@ def show_payment_logs(message: list[str]) -> str:
 
 
 def show_logs(message: list[str]) -> str:
-    """Shows all the history command inputs with optional filters
-    :param message: A list of input message strings
-    :return: A formatted string of all logs
+    """
+    Show command history with optional filters.
+
+    Args:
+        message: A split command message.
+
+    Returns:
+        str: The formatted log history.
     """
     # TODO: command/ui for showing all logs
     # no filter checking for now
@@ -204,8 +224,15 @@ def show_logs(message: list[str]) -> str:
 
 
 async def create_user(bot, message) -> str:
-    """Creates a new user
-    :return: A string indicating the result of the user creation
+    """
+    Create a new user.
+
+    Args:
+        bot: The Discord bot instance.
+        message: The command message from the user.
+
+    Returns:
+        str: The result of the user creation.
     """
     msg = message.message.content.lower().split()
     if len(msg) < 2:
@@ -231,8 +258,15 @@ async def create_user(bot, message) -> str:
 
 
 async def delete_user(bot, message) -> str:
-    """Deletes a user if they have no debts
-    :return: A string indicating the result of the user deletion
+    """
+    Delete a user if they have no debts.
+
+    Args:
+        bot: The Discord bot instance.
+        message: The command message from the user.
+
+    Returns:
+        str: The result of the user deletion.
     """
     msg = message.message.content.lower().split()
     if len(msg) < 2:
@@ -261,10 +295,14 @@ async def delete_user(bot, message) -> str:
 
 def exchange_currency(from_cur: str, amount: float) -> tuple[float, float]:
     """
-    :param from_cur: base currency to convert from
-    :param amount: amount to convert
-    :return converted amount:
-    :return exchange rate:
+    Convert an amount to the unified currency.
+
+    Args:
+        from_cur: The base currency to convert from.
+        amount: The amount to convert.
+
+    Returns:
+        tuple[float, float]: The converted amount and exchange rate.
     """
     amount = float(amount)
     if from_cur == UNIFIED_CURRENCY:
@@ -280,8 +318,15 @@ def exchange_currency(from_cur: str, amount: float) -> tuple[float, float]:
 
 
 def synchronize_payment_records(users: list[str], timestamp) -> None:
-    """Synchronizes payment records with the Firestore
-    :param users: List of user names
+    """
+    Queue balance updates for the given users.
+
+    Args:
+        users: The user names to sync.
+        timestamp: The timestamp to write with the updates.
+
+    Returns:
+        None.
     """
     for user in users:
         firebase_queue.put(
@@ -297,11 +342,17 @@ def synchronize_payment_records(users: list[str], timestamp) -> None:
 def payment_handling(
     ppl_to_pay: str, ppl_get_paid: str, amount: float, timestamp
 ) -> str:
-    """Performs the payment operation
-    :param ppl_to_pay: The left user (payer)
-    :param ppl_get_paid: The right user (payee)
-    :param amount: The amount to be paid (unified currency)
-    :return: A string indicating the result of the payment operation
+    """
+    Apply a payment transaction and return the update summary.
+
+    Args:
+        ppl_to_pay: The left user or users who pay.
+        ppl_get_paid: The right user or users who receive payment.
+        amount: The amount to be paid in unified currency.
+        timestamp: The timestamp to associate with the update.
+
+    Returns:
+        str: A summary of the payment changes.
     """
 
     def owe(person_to_pay: str, person_get_paid: str) -> str:
@@ -375,24 +426,36 @@ def payment_handling(
 
 
 async def payment_system(bot, message, prev_input=None) -> None:
-    """Process the payment command and updates the payment records
-    :param bot: The Discord bot instance
-    :param msg: Command message from the user
-    :param prev_input: A dictionary of previous input for edit functionality
+    """
+    Process a payment command and update the payment records.
+
+    Args:
+        bot: The Discord bot instance.
+        message: The command message from the user.
+        prev_input: Previous parsed input for edit flow.
+
+    Returns:
+        None.
     """
 
     def parse_cmd_input() -> Union[dict, str]:
-        """Parses the command input from the user
+        """
+        Parse the command-style payment input.
 
-        e.g. !pm p1,p2 owe p3 100 -cny sc reason 123
-
-        :return: A dictionary containing parsed payment information or an error message
+        Returns:
+            dict[str, object] | str: Parsed payment data or an error message.
         """
 
         def parse_optional_args(args: List[str]) -> Union[Tuple[bool, str, str], bool]:
-            """Parses optional arguments from the command input
-            :param args: List of optional arguments from the command input
-            :return: A tuple containing service charge flag, currency, and reason, or False if invalid
+            """
+            Parse optional command arguments.
+
+            Args:
+                args: Optional arguments from the command input.
+
+            Returns:
+                tuple[bool, str, str] | bool: Service charge flag, currency, and reason,
+                or False if the arguments are invalid.
             """
             service_charge = False
             currency: str = UNIFIED_CURRENCY
@@ -457,8 +520,11 @@ async def payment_system(bot, message, prev_input=None) -> None:
         }
 
     async def parse_ui_input() -> Union[dict, str]:
-        """Parses the user input from the UI
-        :return: A dictionary containing parsed payment information or an error message
+        """
+        Parse the UI-based payment input.
+
+        Returns:
+            dict[str, object] | str: Parsed payment data or an error message.
         """
         if prev_input is None:
             menu = InputView(message.author.id, user_list)
@@ -497,9 +563,14 @@ async def payment_system(bot, message, prev_input=None) -> None:
         }
 
     def process_amount(amount: str) -> float:
-        """Handles the amount input and converts it to a float
-        :param amount: The amount input from the user
-        :return: The actual amount and the exchange rate
+        """
+        Convert the entered amount into unified currency.
+
+        Args:
+            amount: The amount input from the user.
+
+        Returns:
+            tuple[float, float]: The converted amount and exchange rate.
         """
         actual_amount, exchange_rate = exchange_currency(currency, amount)
         actual_amount *= 1.1 if service_charge else 1

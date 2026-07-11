@@ -64,10 +64,16 @@ def start_bot():
         await user.send(f"Error in command {ctx.command}: {error}")
 
     def command_wrapper(bot_active=True, in_payment_channel=False, command_type=None):
-        """A wrapper to wrap commands with common checks and logging.
-        :param bot_active: Whether the bot is active or not.
-        :param in_payment_channel: Whether the command should be executed in the payment channel.
-        :param command_type: The type of command to log.
+        """
+        Wrap commands with common checks and logging.
+
+        Args:
+            bot_active: Whether the bot must be active.
+            in_payment_channel: Whether the command must run in the payment channel.
+            command_type: The type of command to log.
+
+        Returns:
+            Callable: The command decorator.
         """
 
         def decorator(func):

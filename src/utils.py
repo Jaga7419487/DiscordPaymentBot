@@ -41,17 +41,27 @@ def amt_parser(amt: str) -> str:
 
 
 def get_emoji(emoji_name: str) -> str:
-    """Return the emoji for the given name
-    :param emoji_name: The name of the emoji
-    :return: The emoji character or a question mark if not found
+    """
+    Return the emoji for the given name.
+
+    Args:
+        emoji_name: The name of the emoji.
+
+    Returns:
+        str: The emoji character or a question mark if not found.
     """
     return EMOJI_MAPPING.get(emoji_name.upper(), EMOJI_MAPPING["?"])
 
 
 def get_mapped_name(user_id: int | str | None) -> str | None:
-    """Return the mapped name for the given user ID
-    :param user_id: The Discord user ID
-    :return: The mapped name or None if not found
+    """
+    Return the mapped name for the given user ID.
+
+    Args:
+        user_id: The Discord user ID.
+
+    Returns:
+        str | None: The mapped name or None if not found.
     """
     if user_id is None:
         return None

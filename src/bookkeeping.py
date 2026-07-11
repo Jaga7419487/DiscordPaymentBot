@@ -4,9 +4,13 @@ from utils import B, amt_parser, is_valid_amount
 
 
 def add_bookkeeping_record(message) -> str:
-    """Add a bookkeeping record to the database and return a response message
-    :param message: Command message from the user
-    :return: A response message indicating the result of the operation
+    """Add a bookkeeping record and return a response message.
+
+    Args:
+        message: The command message from the user.
+
+    Returns:
+        str: A response message indicating the result of the operation.
     """
     msg = message.message.content.lower().split()
     if len(msg) < 5:
@@ -32,9 +36,13 @@ def add_bookkeeping_record(message) -> str:
 
 
 def show_bookkeeping_records(msg: list[str]) -> str:
-    """Return the bookkeeping records with optional filters
-    :param msg: The message content split into a list of lowercase strings
-    :return: The bookkeeping records
+    """Return bookkeeping records with optional filters.
+
+    Args:
+        msg: The message content split into lowercase strings.
+
+    Returns:
+        str: The bookkeeping records.
     """
 
     return ""
