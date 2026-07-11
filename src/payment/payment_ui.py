@@ -1,10 +1,20 @@
 import discord
 
-from constants import MENU_TIMEOUT, SUPPORTED_CURRENCY, UNDO_TIMEOUT, UNIFIED_CURRENCY
-from utils import B, amt_parser, is_valid_amount
+from constants import (
+    MENU_TIMEOUT,
+    SUPPORTED_CURRENCY,
+    UNDO_TIMEOUT,
+    UNIFIED_CURRENCY,
+)
+from utils import B, amt_parser, get_mapped_name, is_valid_amount
 
 
-def list_to_options(record: list):
+def list_to_options(record: list, owner_id: int | None = None):
+    if owner_id is not None:
+        mapped_name = get_mapped_name(owner_id)
+        if mapped_name in record:
+            record = [mapped_name] + [each for each in record if each != mapped_name]
+
     options = []
     for each_name in record:
         options.append(discord.SelectOption(label=each_name, value=each_name))
@@ -55,8 +65,8 @@ class ServiceChargeButton(discord.ui.Button):
 
 
 class SelectPplToPay(discord.ui.Select):
-    def __init__(self, record: list):
-        options = list_to_options(record)
+    def __init__(self, record: list, owner_id: int | None = None):
+        options = list_to_options(record, owner_id)
         super().__init__(
             options=options,
             placeholder="Who needs to pay?",
@@ -72,8 +82,8 @@ class SelectPplToPay(discord.ui.Select):
 
 
 class SelectPersonGetPaid(discord.ui.Select):
-    def __init__(self, record: list):
-        options = list_to_options(record)
+    def __init__(self, record: list, owner_id: int | None = None):
+        options = list_to_options(record, owner_id)
         super().__init__(options=options, placeholder="Who will get paid?", row=2)
 
     async def callback(self, interaction: discord.Interaction):
@@ -291,8 +301,8 @@ class InputView(discord.ui.View):
         self.enter_btn = EnterButton()
         self.cancel_btn = CancelButton()
 
-        self.ppl_to_pay_menu = SelectPplToPay(record)
-        self.person_get_paid_menu = SelectPersonGetPaid(record)
+        self.ppl_to_pay_menu = SelectPplToPay(record, owner_id)
+        self.person_get_paid_menu = SelectPersonGetPaid(record, owner_id)
 
         self.add_item(self.owe_btn)
         self.add_item(self.service_charge_btn)

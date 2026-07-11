@@ -17,7 +17,7 @@ from constants import (
     USER_MAPPING,
 )
 from payment.payment_ui import InputView, UndoView, amt_parser, is_valid_amount
-from utils import B, I, channel_to_text
+from utils import B, I, channel_to_text, get_mapped_name
 
 payment_records = firebase_manager.firebase_to_dict()
 user_list = list(payment_records.keys())
@@ -80,10 +80,7 @@ def show_payment_record(author_id=None) -> str:
     """
     zero = take_money = need_pay = ""
     sum = 0
-    mapped_name = next(
-        (name for name, user_id in USER_MAPPING.items() if user_id == str(author_id)),
-        None,
-    )
+    mapped_name = get_mapped_name(author_id)
 
     for name, amount in payment_records.items():
         sum += amount
@@ -96,7 +93,7 @@ def show_payment_record(author_id=None) -> str:
             record_text = f"{B(name)} needs to pay ${I(-amount)}\n"
 
         if name == mapped_name:
-            record_text = f"> {record_text.rstrip()}\n"
+            record_text = f"> ### {record_text.rstrip()}\n"
 
         if amount == 0:
             zero += record_text

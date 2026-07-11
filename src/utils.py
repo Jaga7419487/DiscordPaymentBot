@@ -1,5 +1,5 @@
 import discord
-from constants import EMOJI_MAPPING, PAYMENT_CHANNEL_ID, VALID_CHARS_SET
+from constants import EMOJI_MAPPING, PAYMENT_CHANNEL_ID, USER_MAPPING, VALID_CHARS_SET
 
 
 def B(text: str) -> str:
@@ -46,3 +46,18 @@ def get_emoji(emoji_name: str) -> str:
     :return: The emoji character or a question mark if not found
     """
     return EMOJI_MAPPING.get(emoji_name.upper(), EMOJI_MAPPING["?"])
+
+
+def get_mapped_name(user_id: int | str | None) -> str | None:
+    """Return the mapped name for the given user ID
+    :param user_id: The Discord user ID
+    :return: The mapped name or None if not found
+    """
+    if user_id is None:
+        return None
+    if isinstance(user_id, int):
+        user_id = str(user_id)
+    return next(
+        (name for name, uid in USER_MAPPING.items() if str(uid) == str(user_id)),
+        None,
+    )
