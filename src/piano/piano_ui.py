@@ -29,7 +29,9 @@ def timeslot_to_options(session) -> list[discord.SelectOption]:
             start = 23
             end = 31
         case _:
-            raise ValueError("[AutoPianoBookingUI] timeslot_to_options: Invalid session")
+            raise ValueError(
+                "[AutoPianoBookingUI] timeslot_to_options: Invalid session"
+            )
 
     for i in range(start, end):
         options.append(discord.SelectOption(label=number_to_time(i), value=str(i)))
@@ -41,23 +43,23 @@ def duration_to_options(n=4) -> list[discord.SelectOption]:
         discord.SelectOption(label="30 minutes", value="1"),
         discord.SelectOption(label="1 hour", value="2"),
         discord.SelectOption(label="1.5 hours", value="3"),
-        discord.SelectOption(label="2 hours", value="4")
+        discord.SelectOption(label="2 hours", value="4"),
     ]
     return options[:n]
 
 
 def number_to_day(num) -> str:
     day = datetime.today() + timedelta(days=num - 1)
-    return day.strftime('%a')
+    return day.strftime("%a")
 
 
 def number_to_time(num) -> str:
     if num < 1 or num > 31:
         return "???"
-    start_time = datetime.strptime('07:00', '%H:%M')
+    start_time = datetime.strptime("07:00", "%H:%M")
     total_minutes = timedelta(minutes=(num - 1) * 30)
     new_time = start_time + total_minutes
-    return new_time.strftime('%H:%M')
+    return new_time.strftime("%H:%M")
 
 
 class UserModal(discord.ui.Modal):
@@ -66,25 +68,25 @@ class UserModal(discord.ui.Modal):
         placeholder="Enter your username here...",
         required=True,
     )
-    
+
     password_input = discord.ui.TextInput(
         label="Password",
         placeholder="Enter your password here...",
         required=True,
-    )        
-    
+    )
+
     def __init__(self):
         super().__init__(title="User Information")
-        self.username = self.password = ''
+        self.username = self.password = ""
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer()
         self.username = self.username_input.value
-        if '@' not in self.username:
-            self.username += '@connect.ust.hk'
+        if "@" not in self.username:
+            self.username += "@connect.ust.hk"
         self.password = self.password_input.value
         self.stop()
-        
+
 
 class UserButton(discord.ui.Button):
     def __init__(self):
@@ -93,12 +95,12 @@ class UserButton(discord.ui.Button):
             custom_id="user_btn",
             row=0,
         )
-    
+
     async def callback(self, interaction: discord.Interaction):
         modal = UserModal()
         await interaction.response.send_modal(modal)
         await modal.wait()
-        
+
         self.view.username = modal.username
         self.view.password = modal.password
         self.view.update_description()
@@ -119,9 +121,13 @@ class ActionButton(discord.ui.Button):
         self.view.action = (self.view.action + 1) % 2  # set action to the opposite
         if self.view.action == 0:  # wait 00:00
             self.view.day = 7  # set day to last day
-            self.view.duration = 4  # 2hrs 
-        self.label = self.actions[(self.view.action + 1) % 2]  # set button label to the opposite action
-        self.view.day_menu.options = day_to_options(self.view.action == 1)  # update day menu options accordingly
+            self.view.duration = 4  # 2hrs
+        self.label = self.actions[
+            (self.view.action + 1) % 2
+        ]  # set button label to the opposite action
+        self.view.day_menu.options = day_to_options(
+            self.view.action == 1
+        )  # update day menu options accordingly
         self.view.update_description()
         await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
@@ -195,10 +201,7 @@ class MorningButton(discord.ui.Button):
 class AfternoonButton(discord.ui.Button):
     def __init__(self):
         super().__init__(
-            label="Afternoon",
-            custom_id="afternoon_btn",
-            row=0,
-            disabled=False
+            label="Afternoon", custom_id="afternoon_btn", row=0, disabled=False
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -219,10 +222,7 @@ class AfternoonButton(discord.ui.Button):
 class EveningButton(discord.ui.Button):
     def __init__(self):
         super().__init__(
-            label="Evening",
-            custom_id="evening_btn",
-            row=0,
-            disabled=False
+            label="Evening", custom_id="evening_btn", row=0, disabled=False
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -244,10 +244,7 @@ class DayMenu(discord.ui.Select):
     def __init__(self, action: int):
         options = day_to_options(action == 1)
         super().__init__(
-            placeholder="Which day?",
-            options=options,
-            custom_id="day_menu",
-            row=1
+            placeholder="Which day?", options=options, custom_id="day_menu", row=1
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -265,7 +262,7 @@ class TimeSlotMenu(discord.ui.Select):
             placeholder="Which time?",
             options=options,
             custom_id="time_slot_menu",
-            row=2
+            row=2,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -282,7 +279,7 @@ class DurationMenu(discord.ui.Select):
             placeholder="How long?",
             options=duration_to_options(),
             custom_id="duration_menu",
-            row=3
+            row=3,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -299,12 +296,12 @@ class EnterButton(discord.ui.Button):
             custom_id="enter_btn",
             row=4,
             style=discord.ButtonStyle.primary,
-            disabled=True
+            disabled=True,
         )
 
     async def callback(self, interaction: discord.Interaction):
         self.view.update_description()
-        
+
         if self.view.correct_input():
             self.view.finished = True
             for item in self.view.children:
@@ -325,7 +322,7 @@ class CancelButton(discord.ui.Button):
             custom_id="cancel_btn",
             row=4,
             style=discord.ButtonStyle.danger,
-            disabled=False
+            disabled=False,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -343,8 +340,8 @@ class View(discord.ui.View):
 
         self.cancelled = False
         self.finished = False
-        self.username = ''
-        self.password = ''
+        self.username = ""
+        self.password = ""
         self.action = 0  # 0: Wait 00:00, 1: Book now
         self.room = 1  # 1: 111, 2: 114
         self.day = 7  # 1-7 (today:1, tmr:2, ...)
@@ -374,14 +371,27 @@ class View(discord.ui.View):
         self.add_item(self.cancel_btn)
 
     def correct_input(self) -> bool:
-        return self.username and self.password and self.day != 0 and self.time_part != 0 and self.time_slot != 0 and self.duration != 0
+        return (
+            self.username
+            and self.password
+            and self.day != 0
+            and self.time_part != 0
+            and self.time_slot != 0
+            and self.duration != 0
+        )
 
     def update_description(self) -> None:
         user_text = self.username[:8] if self.username else "???"
         room_text = f"Rm{'111' if self.room == 1 else '114'}"
-        day_text = number_to_day(self.day if self.action == 1 else self.day + 1) if self.day != 0 else "???"
-        day = datetime.today() + timedelta(days=self.day-1 if self.action == 1 else self.day)
-        date_text = day.strftime('%d/%m') if self.day != 0 else ""
+        day_text = (
+            number_to_day(self.day if self.action == 1 else self.day + 1)
+            if self.day != 0
+            else "???"
+        )
+        day = datetime.today() + timedelta(
+            days=self.day - 1 if self.action == 1 else self.day
+        )
+        date_text = day.strftime("%d/%m") if self.day != 0 else ""
         time_period_text = f"{number_to_time(self.time_slot)} ~ {number_to_time(self.time_slot + self.duration)}"
         action_text = "Book now" if self.action == 1 else "Wait 00:00"
         self.embed_text.description = f"{user_text}: {room_text} __{date_text} {day_text}__ {time_period_text} [{action_text}]"
@@ -401,13 +411,11 @@ if __name__ == "__main__":
     from constants import BOT_KEY
 
     intents = discord.Intents.all()
-    bot = commands.Bot(command_prefix='!', intents=intents)
-
+    bot = commands.Bot(command_prefix="!", intents=intents)
 
     @bot.event
     async def on_ready():
         print(f"Current logged in user --> {bot.user}")
-
 
     @bot.command()
     async def t(ctx: commands.Context):
@@ -422,8 +430,9 @@ if __name__ == "__main__":
         user = menu.username
         pw = menu.password
 
-        await ctx.send(f"username: {user}; password: {pw}; Room:{room}; day:{day}; time_slot:{time_slot}; duration:{duration}")
+        await ctx.send(
+            f"username: {user}; password: {pw}; Room:{room}; day:{day}; time_slot:{time_slot}; duration:{duration}"
+        )
         await ctx.send(menu.embed_text.description)
-
 
     bot.run(BOT_KEY)

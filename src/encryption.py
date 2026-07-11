@@ -16,8 +16,8 @@ def encrypt_string(plaintext: str, key: str) -> str:
     Returns base64-encoded encrypted string with embedded salt.
     """
     # Convert strings to bytes
-    plaintext_bytes = plaintext.encode('utf-8')
-    key_bytes = key.encode('utf-8')
+    plaintext_bytes = plaintext.encode("utf-8")
+    key_bytes = key.encode("utf-8")
 
     # Generate a random salt for each encryption
     salt = os.urandom(16)
@@ -39,7 +39,7 @@ def encrypt_string(plaintext: str, key: str) -> str:
     result = base64.urlsafe_b64encode(salt + encrypted_bytes)
 
     # Return as a string
-    return result.decode('utf-8')
+    return result.decode("utf-8")
 
 
 def decrypt_string(encrypted_text: str, key: str) -> str:
@@ -49,8 +49,8 @@ def decrypt_string(encrypted_text: str, key: str) -> str:
     """
     try:
         # Convert to bytes and decode from base64
-        combined_bytes = base64.urlsafe_b64decode(encrypted_text.encode('utf-8'))
-        key_bytes = key.encode('utf-8')
+        combined_bytes = base64.urlsafe_b64decode(encrypted_text.encode("utf-8"))
+        key_bytes = key.encode("utf-8")
 
         # Extract the salt (first 16 bytes) and the encrypted data
         salt = combined_bytes[:16]
@@ -69,7 +69,7 @@ def decrypt_string(encrypted_text: str, key: str) -> str:
         cipher = Fernet(fernet_key)
         decrypted_bytes = cipher.decrypt(encrypted_bytes)
 
-        return decrypted_bytes.decode('utf-8')
+        return decrypted_bytes.decode("utf-8")
     except Exception as e:
         return f"Decryption failed: {str(e)}"
 
@@ -79,13 +79,11 @@ class EncryptionModal(discord.ui.Modal):
         label="Text to encrypt",
         placeholder="Enter your message here...",
         required=True,
-        style=discord.TextStyle.paragraph
+        style=discord.TextStyle.paragraph,
     )
 
     key_input = discord.ui.TextInput(
-        label="Encryption key",
-        placeholder="Enter your secret key",
-        required=True
+        label="Encryption key", placeholder="Enter your secret key", required=True
     )
 
     def __init__(self):
@@ -97,7 +95,9 @@ class EncryptionModal(discord.ui.Modal):
 
         encrypted_text = encrypt_string(plaintext, key)
 
-        await interaction.response.send_message(encrypted_text, ephemeral=True, delete_after=ENCRYPTED_DELETE_TIMEOUT)
+        await interaction.response.send_message(
+            encrypted_text, ephemeral=True, delete_after=ENCRYPTED_DELETE_TIMEOUT
+        )
 
 
 class DecryptionModal(discord.ui.Modal):
@@ -105,13 +105,11 @@ class DecryptionModal(discord.ui.Modal):
         label="Encrypted text",
         placeholder="Paste the encrypted text here...",
         required=True,
-        style=discord.TextStyle.paragraph
+        style=discord.TextStyle.paragraph,
     )
 
     key_input = discord.ui.TextInput(
-        label="Decryption key",
-        placeholder="Enter your secret key",
-        required=True
+        label="Decryption key", placeholder="Enter your secret key", required=True
     )
 
     def __init__(self):
@@ -126,16 +124,14 @@ class DecryptionModal(discord.ui.Modal):
         if decrypted_text.startswith("Decryption failed"):
             decrypted_text = "⚠️ Decryption failed"
 
-        await interaction.response.send_message(decrypted_text, ephemeral=True, delete_after=ENCRYPTED_DELETE_TIMEOUT)
+        await interaction.response.send_message(
+            decrypted_text, ephemeral=True, delete_after=ENCRYPTED_DELETE_TIMEOUT
+        )
 
 
 class EncryptButton(discord.ui.Button):
     def __init__(self):
-        super().__init__(
-            label="Encrypt",
-            style=discord.ButtonStyle.primary,
-            emoji="🔒"
-        )
+        super().__init__(label="Encrypt", style=discord.ButtonStyle.primary, emoji="🔒")
 
     async def callback(self, interaction: discord.Interaction):
         # Disable the button after it's clicked
@@ -150,9 +146,7 @@ class EncryptButton(discord.ui.Button):
 class DecryptButton(discord.ui.Button):
     def __init__(self):
         super().__init__(
-            label="Decrypt",
-            style=discord.ButtonStyle.secondary,
-            emoji="🔓"
+            label="Decrypt", style=discord.ButtonStyle.secondary, emoji="🔓"
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -182,7 +176,7 @@ async def encrypt_command(message: commands.Context):
     embed = discord.Embed(
         title="Encryption",
         description="Click the button below to encrypt a message",
-        color=discord.Color.blue()
+        color=discord.Color.blue(),
     )
 
     view = EncryptView()
@@ -194,7 +188,7 @@ async def decrypt_command(message: commands.Context):
     embed = discord.Embed(
         title="Decryption",
         description="Click the button below to decrypt a message",
-        color=discord.Color.blue()
+        color=discord.Color.blue(),
     )
 
     view = DecryptView()

@@ -10,9 +10,9 @@ from payment.payment_logic import terminate_worker
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup code here
-    
+
     yield
-    
+
     # Shutdown code here
     logging.info("FastAPI is shutting down!")
     terminate_worker()
@@ -32,6 +32,8 @@ async def keep_alive():
 
 
 async def start_fastapi():
-    config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="info", loop="asyncio")
+    config = uvicorn.Config(
+        app, host="0.0.0.0", port=8000, log_level="info", loop="asyncio"
+    )
     server = uvicorn.Server(config)
     await server.serve()
