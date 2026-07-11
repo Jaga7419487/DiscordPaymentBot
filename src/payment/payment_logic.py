@@ -448,7 +448,7 @@ async def payment_system(bot, message, prev_input=None) -> None:
         :return: A dictionary containing parsed payment information or an error message
         """
         if prev_input is None:
-            menu = InputView(user_list)
+            menu = InputView(message.author.id, user_list)
         else:
             ptp = prev_input["ppl_to_pay"]
             op = prev_input["operation_owe"]
@@ -457,7 +457,9 @@ async def payment_system(bot, message, prev_input=None) -> None:
             sc = prev_input["service_charge"]
             cur = prev_input["currency"]
             reason = prev_input["reason"]
-            menu = InputView(user_list, ptp, op, pgp, amt, sc, cur, reason)
+            menu = InputView(
+                message.author.id, user_list, ptp, op, pgp, amt, sc, cur, reason
+            )
 
         menu.update_description()
         menu.message = await message.reply(view=menu, embed=menu.embed_text)
@@ -552,7 +554,7 @@ async def payment_system(bot, message, prev_input=None) -> None:
     response_content = f"`{log_content}`{user_mention}\n-# Updated records:\n{update}"
 
     # send the UNDO view before time-consuming operations
-    undo_view = UndoView(not cmd_input, response_content)
+    undo_view = UndoView(message.author.id, not cmd_input, response_content)
     undo_view.message = await message.reply(view=undo_view, embed=undo_view.embed_text)
 
     await log_channel.send(log_content)

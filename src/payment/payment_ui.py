@@ -257,6 +257,7 @@ class EditButton(discord.ui.Button):
 class InputView(discord.ui.View):
     def __init__(
         self,
+        owner_id: int,
         record: list,
         pay_text="???",
         owe=True,
@@ -268,6 +269,7 @@ class InputView(discord.ui.View):
     ):
         super().__init__(timeout=MENU_TIMEOUT)
 
+        self.owner_id = owner_id
         self.cancelled = False
         self.finished = False
 
@@ -299,6 +301,14 @@ class InputView(discord.ui.View):
         self.add_item(self.modal_trigger)
         self.add_item(self.enter_btn)
         self.add_item(self.cancel_btn)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.owner_id:
+            await interaction.response.send_message(
+                "You can't interrupt other users!", ephemeral=True
+            )
+            return False
+        return True
 
     def correct_input(self) -> bool:
         return not (
@@ -337,9 +347,10 @@ class InputView(discord.ui.View):
 
 
 class UndoView(discord.ui.View):
-    def __init__(self, show_edit_btn: bool, response_content: str):
+    def __init__(self, owner_id: int, show_edit_btn: bool, response_content: str):
         super().__init__(timeout=UNDO_TIMEOUT)
 
+        self.owner_id = owner_id
         self.undo = False
         self.edit = False
         self.undo_user = None
@@ -354,6 +365,14 @@ class UndoView(discord.ui.View):
         if show_edit_btn:
             self.edit_btn = EditButton()
             self.add_item(self.edit_btn)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.owner_id:
+            await interaction.response.send_message(
+                "You can't interrupt other users!", ephemeral=True
+            )
+            return False
+        return True
 
     async def on_timeout(self) -> None:
         for item in self.children:
