@@ -1,7 +1,9 @@
+from datetime import datetime
 import queue
 import threading
 from typing import List, Tuple, Union
 
+import discord
 import requests
 
 import firebase_manager
@@ -22,6 +24,95 @@ from utils import B, I, channel_to_text, get_mapped_name
 payment_records = firebase_manager.firebase_to_dict()
 user_list = list(payment_records.keys())
 firebase_queue = queue.Queue()
+
+
+def parse_optional_args(args: List[str]) -> Union[Tuple[bool, str, str], bool]:
+    """
+    Parse optional command arguments.
+
+    Args:
+        args: Optional arguments from the command input.
+
+    Returns:
+        tuple[bool, str, str] | bool: Service charge flag, currency, and reason,
+        or False if the arguments are invalid.
+    """
+    service_charge = False
+    currency: str = UNIFIED_CURRENCY
+    reason = ""
+
+    for i in range(len(args)):
+        if i <= 1 and args[i].startswith("-"):
+            if args[i][1:].upper() not in SUPPORTED_CURRENCY.keys():
+                return False
+            currency = args[i][1:].upper()
+        elif args[i] == "sc":
+            service_charge = True
+        else:
+            reason += args[i] + " "
+
+    return service_charge, currency, reason[:-1]
+
+
+def parse_payment_cmd(tokens: list[str]) -> Union[dict, str]:
+    """
+    Parse command tokens into a payment record dict.
+
+    Args:
+        tokens: Lowered tokens from one payment line (without command prefix).
+
+    Returns:
+        dict with keys: ppl_to_pay, operation_owe, ppl_get_paid, amount,
+        service_charge, currency, reason — or an error string on failure.
+    """
+    if len(tokens) < 4:
+        return "Invalid input! Expected: <payers> owe/payback <payee> <amount> [currency] [sc] [reason]"
+
+    # left users
+    ppl_to_pay = tokens[0]
+    if any(p not in user_list for p in ppl_to_pay.split(",")):
+        return "Invalid input for provider!"
+
+    # operation
+    operation = tokens[1].lower()
+    if operation not in ["owe", "payback"]:
+        return "Invalid payment operation!"
+    operation_owe = operation == "owe"
+
+    # right user
+    ppl_get_paid = tokens[2].lower()
+    if ppl_get_paid not in user_list:
+        return "Invalid input for receiver!"
+    if ppl_get_paid in ppl_to_pay.split(","):
+        return "Invalid input: one cannot owe himself!"
+
+    # amount
+    if not is_valid_amount(tokens[3]):
+        return "Invalid amount!"
+    try:
+        amount: float = round(eval(amt_parser(tokens[3])), ROUND_OFF_DP)
+    except ZeroDivisionError:
+        return "Invalid amount: Don't divide zero la..."
+    except (ValueError, SyntaxError):
+        return "What have you entered for the amount .-."
+    if amount == 0.0:
+        return "Invalid amount: amount cannot be zero!"
+
+    # optional args
+    parse_result = parse_optional_args(tokens[4:])
+    if not parse_result:
+        return "Invalid currency!"
+    service_charge, currency, reason = parse_result
+
+    return {
+        "ppl_to_pay": ppl_to_pay,
+        "operation_owe": operation_owe,
+        "ppl_get_paid": ppl_get_paid,
+        "amount": amount,
+        "service_charge": service_charge,
+        "currency": currency,
+        "reason": reason,
+    }
 
 
 def record_to_text(
@@ -81,10 +172,10 @@ def firebase_worker():
 def show_payment_record(author_id=None) -> str:
     """
     Shows the payment records in a formatted string.
-    
+
     Args:
         author_id (int, optional): The Discord user id of the command sender. Defaults to None.
-    
+
     Returns:
         str: A formatted string of payment records, or an error message.
     """
@@ -425,6 +516,80 @@ def payment_handling(
         return B("ERROR: Person not found")
 
 
+def build_reason_text(reason: str) -> str:
+    if reason:
+        if reason[0] in "(（" and reason[-1] in "）)":
+            return " " + reason
+        else:
+            return f" ({reason})"
+    else:
+        return ""
+
+
+def build_currency_text(currency: str, exchange_rate: float) -> str:
+    if currency != UNIFIED_CURRENCY:
+        return f" [{currency}(1) -> {UNIFIED_CURRENCY}({exchange_rate})]"
+    else:
+        return ""
+
+
+def process_amount(amount: str, currency: str, service_charge: bool) -> float:
+    """
+    Convert the entered amount into unified currency.
+
+    Args:
+        amount: The amount input from the user.
+        currency: The currency of the amount.
+        service_charge: Whether to apply a service charge.
+
+    Returns:
+        tuple[float, float]: The converted amount and exchange rate.
+    """
+    actual_amount, exchange_rate = exchange_currency(currency, amount)
+    actual_amount *= 1.1 if service_charge else 1
+    actual_amount = round(actual_amount, ROUND_OFF_DP)
+    return actual_amount, exchange_rate
+
+
+def parse_payment(message: discord.Message, parsed: dict, msg_time: datetime) -> tuple:
+    ppl_to_pay = parsed["ppl_to_pay"]
+    operation_owe = parsed["operation_owe"]
+    ppl_get_paid = parsed["ppl_get_paid"]
+    amount = parsed["amount"]
+    service_charge = parsed["service_charge"]
+    currency = parsed["currency"]
+    reason = parsed["reason"]
+
+    # Convert currency and apply surcharge
+    actual_amount, exchange_rate = process_amount(amount, currency, service_charge)
+
+    # Generate log content
+    reason_text = build_reason_text(reason)
+    operation_text = "owe" if operation_owe else "pay back"
+    currency_text = build_currency_text(currency, exchange_rate)
+    log_content = (
+        f"{message.author}: {ppl_to_pay} {operation_text} {ppl_get_paid} ${actual_amount}"
+        f"{reason_text}{currency_text}"
+    )
+
+    # switch pay & paid for pay back operation
+    if not operation_owe:
+        ppl_to_pay, ppl_get_paid = ppl_get_paid, ppl_to_pay
+
+    # perform the payment operation
+    update = payment_handling(ppl_to_pay, ppl_get_paid, actual_amount, msg_time)
+
+    return (
+        ppl_to_pay,
+        operation_text,
+        ppl_get_paid,
+        actual_amount,
+        reason_text,
+        log_content,
+        update,
+    )
+
+
 async def payment_system(bot, message, prev_input=None) -> None:
     """
     Process a payment command and update the payment records.
@@ -437,87 +602,6 @@ async def payment_system(bot, message, prev_input=None) -> None:
     Returns:
         None.
     """
-
-    def parse_cmd_input() -> Union[dict, str]:
-        """
-        Parse the command-style payment input.
-
-        Returns:
-            dict[str, object] | str: Parsed payment data or an error message.
-        """
-
-        def parse_optional_args(args: List[str]) -> Union[Tuple[bool, str, str], bool]:
-            """
-            Parse optional command arguments.
-
-            Args:
-                args: Optional arguments from the command input.
-
-            Returns:
-                tuple[bool, str, str] | bool: Service charge flag, currency, and reason,
-                or False if the arguments are invalid.
-            """
-            service_charge = False
-            currency: str = UNIFIED_CURRENCY
-            reason = ""
-
-            for i in range(len(args)):
-                if i <= 1 and args[i].startswith("-"):
-                    if args[i][1:].upper() not in SUPPORTED_CURRENCY.keys():
-                        return False
-                    currency = args[i][1:].upper()
-                elif args[i] == "sc":
-                    service_charge = True
-                else:
-                    reason += args[i] + " "
-
-            return service_charge, currency, reason[:-1]
-
-        # left users
-        ppl_to_pay = msg[1].lower()
-        if any(ppl not in user_list for ppl in ppl_to_pay.split(",")):
-            return "Invalid input for provider!"
-
-        # operation
-        operation = msg[2].lower()
-        if operation not in ["owe", "payback"]:
-            return "Invalid payment operation!"
-        operation_owe = operation == "owe"
-
-        # right user
-        ppl_get_paid = msg[3].lower()
-        if ppl_get_paid not in user_list:
-            return "Invalid input for receiver!"
-        if ppl_get_paid in ppl_to_pay.split(","):
-            return "Invalid input: one cannot owe himself!"
-
-        # amount
-        if not is_valid_amount(msg[4]):
-            return "Invalid amount!"
-        try:
-            amount: float = round(eval(amt_parser(msg[4])), ROUND_OFF_DP)
-        except ZeroDivisionError:
-            return "Invalid amount: Don't divide zero la..."
-        except (ValueError, SyntaxError):
-            return "What have you entered for the amount .-."
-        if amount == 0.0:
-            return "Invalid amount: amount cannot be zero!"
-
-        # optional args
-        parse_result = parse_optional_args(msg[5:])
-        if not parse_result:
-            return "Invalid currency!"
-        service_charge, currency, reason = parse_result
-
-        return {
-            "ppl_to_pay": ppl_to_pay,
-            "operation_owe": operation_owe,
-            "ppl_get_paid": ppl_get_paid,
-            "amount": amount,
-            "service_charge": service_charge,
-            "currency": currency,
-            "reason": reason,
-        }
 
     async def parse_ui_input() -> Union[dict, str]:
         """
@@ -562,27 +646,19 @@ async def payment_system(bot, message, prev_input=None) -> None:
             "reason": menu.reason,
         }
 
-    def process_amount(amount: str) -> float:
-        """
-        Convert the entered amount into unified currency.
-
-        Args:
-            amount: The amount input from the user.
-
-        Returns:
-            tuple[float, float]: The converted amount and exchange rate.
-        """
-        actual_amount, exchange_rate = exchange_currency(currency, amount)
-        actual_amount *= 1.1 if service_charge else 1
-        actual_amount = round(actual_amount, ROUND_OFF_DP)
-        return actual_amount, exchange_rate
-
     log_channel = bot.get_channel(LOG_CHANNEL_ID)
     msg = message.message.content.lower().split()
     cmd_input = len(msg) >= 5
 
+    # Multi-line detection: split by newlines, process each line as a separate record
+    raw_lines = message.message.content.split("\n")
+    is_multi_line = len(raw_lines) > 1 and cmd_input and prev_input is None
+    if is_multi_line:
+        await handle_multi_line_payment(message, raw_lines, log_channel)
+        return
+
     if cmd_input:
-        parsed_input = parse_cmd_input()
+        parsed_input = parse_payment_cmd(msg[1:])
     else:
         parsed_input = await parse_ui_input()
 
@@ -591,40 +667,11 @@ async def payment_system(bot, message, prev_input=None) -> None:
             await message.reply(B(parsed_input))
         return
 
-    ppl_to_pay = parsed_input["ppl_to_pay"]
-    operation_owe = parsed_input["operation_owe"]
-    ppl_get_paid = parsed_input["ppl_get_paid"]
-    amount = parsed_input["amount"]
-    service_charge = parsed_input["service_charge"]
-    currency = parsed_input["currency"]
-    reason = parsed_input["reason"]
-
-    actual_amount, exchange_rate = process_amount(amount)
-
-    # Generate log content
-    reason_text = (
-        (" " + reason if reason[0] in "(（" and reason[-1] in "）)" else f" ({reason})")
-        if reason
-        else ""
-    )
-    operation_text = "owe" if operation_owe else "pay back"
-    currency_text = (
-        f" [{currency}(1) -> {UNIFIED_CURRENCY}({exchange_rate})]"
-        if currency != UNIFIED_CURRENCY
-        else ""
-    )
-    log_content = (
-        f"{message.author}: {ppl_to_pay} {operation_text} {ppl_get_paid} ${actual_amount}"
-        f"{reason_text}{currency_text}"
-    )
-
-    # switch pay & paid for pay back operation
-    if not operation_owe:
-        ppl_to_pay, ppl_get_paid = ppl_get_paid, ppl_to_pay
-
-    # perform the payment operation
     msg_time = message.message.created_at.astimezone(TIMEZONE)
-    update = payment_handling(ppl_to_pay, ppl_get_paid, actual_amount, msg_time)
+
+    ppl_to_pay, op_text, ppl_get_paid, amount, reason, log_content, update = (
+        parse_payment(message, parsed_input, msg_time)
+    )
 
     # response content
     user_mention = " ".join(
@@ -649,10 +696,10 @@ async def payment_system(bot, message, prev_input=None) -> None:
         message.message.content,
         msg_time,
         payers=ppl_to_pay,
-        operation=operation_text,
+        operation=op_text,
         payees=ppl_get_paid,
-        amount=actual_amount,
-        reason=reason_text,
+        amount=amount,
+        reason=reason,
         cancelled=False,
     )
 
@@ -663,7 +710,7 @@ async def payment_system(bot, message, prev_input=None) -> None:
         payment_handling(
             ppl_get_paid,
             ppl_to_pay,
-            actual_amount,
+            amount,
             undo_view.cancelled_at.astimezone(TIMEZONE),
         )
         await undo_view.message.reply(
@@ -687,19 +734,19 @@ async def payment_system(bot, message, prev_input=None) -> None:
             message,
             prev_input={
                 "ppl_to_pay": ppl_to_pay,
-                "operation_owe": operation_owe,
+                "operation_owe": parsed_input["operation_owe"],
                 "ppl_get_paid": ppl_get_paid,
-                "amount": amount,
-                "service_charge": service_charge,
-                "currency": currency,
-                "reason": reason,
+                "amount": parsed_input["amount"],
+                "service_charge": parsed_input["service_charge"],
+                "currency": parsed_input["currency"],
+                "reason": parsed_input["reason"],
             },
         )
     elif undo_view.undo:
         payment_handling(
             ppl_get_paid,
             ppl_to_pay,
-            actual_amount,
+            amount,
             undo_view.cancelled_at.astimezone(TIMEZONE),
         )
         await undo_view.message.reply(B("Undo has been executed!"))
@@ -714,6 +761,125 @@ async def payment_system(bot, message, prev_input=None) -> None:
             undo_view.cancelled_at.astimezone(TIMEZONE),
             cancelledRecord=log_content,
         )
+
+
+async def handle_multi_line_payment(message, raw_lines: list[str], log_channel) -> None:
+    """
+    Process multi-line payment input (command-line only).
+    Each non-empty line after the first is parsed as a separate record.
+    All records share a single UndoView that reverses every transaction.
+
+    Args:
+        message: The command message from the user.
+        raw_lines: Lines split from the raw message content.
+        log_channel: The discord log channel to send logs to.
+    """
+    parsed_txns = []
+    errors = []
+
+    for i, line in enumerate(raw_lines):
+        line = line.strip()
+        if not line:
+            continue
+        # Strip command prefix from the first line only
+        tokens = line.lower().split()
+        if i == 0 and tokens and tokens[0] == "!pm":
+            tokens = tokens[1:]
+        if len(tokens) < 4:
+            errors.append(
+                f"-# Line {i + 1}: Invalid format (expected: <payers> owe/payback <payee> <amount>)"
+            )
+            continue
+        parsed = parse_payment_cmd(tokens)
+        if isinstance(parsed, str):
+            errors.append(f"-# Line {i + 1}: {parsed}")
+            continue
+        parsed_txns.append(parsed)
+
+    if not parsed_txns:
+        reply = "\n".join(errors) if errors else "No valid payment records found."
+        await message.reply(B(reply))
+        return
+
+    # Report parsing errors but still process valid lines
+    if errors:
+        await message.reply(B("Some lines could not be parsed:\n" + "\n".join(errors)))
+
+    # Process each parsed transaction
+    msg_time = message.message.created_at.astimezone(TIMEZONE)
+    processed_txns = []  # {ppl_to_pay, ppl_get_paid, actual_amount, log_content, log_ref}
+
+    for parsed in parsed_txns:
+        ppl_to_pay, op_text, ppl_get_paid, amount, reason, log_content, update = (
+            parse_payment(message, parsed, msg_time)
+        )
+
+        # Log to firebase immediately
+        log_ref = firebase_manager.write_log(
+            "payment",
+            channel_to_text(message.channel),
+            message.author.name,
+            log_content,
+            msg_time,
+            payers=ppl_to_pay,
+            operation=op_text,
+            payees=ppl_get_paid,
+            amount=amount,
+            reason=reason,
+            cancelled=False,
+        )
+        await log_channel.send(log_content)
+
+        processed_txns.append(
+            {
+                "ppl_to_pay": ppl_to_pay,
+                "ppl_get_paid": ppl_get_paid,
+                "actual_amount": amount,
+                "log_content": log_content,
+                "log_ref": log_ref,
+                "update": update,
+            }
+        )
+
+    # Build combined response
+    update_blocks = [
+        f"`{t['log_content']}`\n-# Updated:\n{t['update']}" for t in processed_txns
+    ]
+    all_mentioned = set()
+    for t in processed_txns:
+        for u in t["ppl_to_pay"].split(",") + [t["ppl_get_paid"]]:
+            if USER_MAPPING.get(u):
+                all_mentioned.add(USER_MAPPING[u])
+    mention_text = " ".join(f"<@{uid}>" for uid in all_mentioned)
+    mention_text = f"\n-# {mention_text}" if mention_text else ""
+    combined_response = "\n\n".join(update_blocks) + mention_text
+
+    # Single UndoView for the whole batch
+    undo_view = UndoView(message.author.id, False, combined_response)
+    undo_view.message = await message.reply(view=undo_view, embed=undo_view.embed_text)
+    await undo_view.wait()
+
+    # Bulk undo: reverse every transaction in reverse order
+    if undo_view.undo:
+        for txn in reversed(processed_txns):
+            payment_handling(
+                txn["ppl_get_paid"],
+                txn["ppl_to_pay"],
+                txn["actual_amount"],
+                undo_view.cancelled_at.astimezone(TIMEZONE),
+            )
+            firebase_manager.update_log(txn["log_ref"], cancelled=True)
+            undo_log = f"{undo_view.undo_user}: __UNDO__ **[**{txn['log_content']}**]**"
+            await log_channel.send(undo_log)
+            firebase_manager.write_log(
+                "manage",
+                channel_to_text(message.channel),
+                undo_view.undo_user,
+                "undo",
+                undo_view.cancelled_at.astimezone(TIMEZONE),
+                cancelledRecord=txn["log_content"],
+            )
+        await undo_view.message.reply(B("All records have been undone!"))
 
 
 def terminate_worker():

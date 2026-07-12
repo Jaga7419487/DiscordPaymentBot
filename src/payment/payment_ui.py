@@ -41,8 +41,8 @@ class OweButton(discord.ui.Button):
         self.view.owe = not self.view.owe
         self.view.owe_btn.label = "pay back" if self.view.owe else "owe"
         self.view.update_description()
-        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
 
 
 class ServiceChargeButton(discord.ui.Button):
@@ -60,8 +60,8 @@ class ServiceChargeButton(discord.ui.Button):
             "✅" if self.view.service_charge else "+10%"
         )
         self.view.update_description()
-        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
 
 
 class SelectPplToPay(discord.ui.Select):
@@ -77,8 +77,8 @@ class SelectPplToPay(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         self.view.pay_text = choices_to_text(self.values)
         self.view.update_description()
-        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
 
 
 class SelectPersonGetPaid(discord.ui.Select):
@@ -89,8 +89,8 @@ class SelectPersonGetPaid(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         self.view.paid_text = self.values[0]
         self.view.update_description()
-        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
         await interaction.response.defer()
+        await interaction.message.edit(view=self.view, embed=self.view.embed_text)
 
 
 class AmountModal(discord.ui.Modal):
@@ -193,13 +193,12 @@ class EnterButton(discord.ui.Button):
             await interaction.response.send_message(
                 "Incorrect input! (This message should not appear)", ephemeral=True
             )
-            await interaction.response.defer()
         else:
             self.view.finished = True
             for item in self.view.children:
                 item.disabled = True
-            await interaction.message.edit(view=self.view)
             await interaction.response.defer()
+            await interaction.message.edit(view=self.view)
             self.view.stop()
 
 
@@ -217,8 +216,8 @@ class CancelButton(discord.ui.Button):
         self.view.cancelled = True
         for item in self.view.children:
             item.disabled = True
-        await interaction.message.edit(view=self.view)
         await interaction.response.defer()
+        await interaction.message.edit(view=self.view)
         self.view.stop()
 
 
@@ -232,14 +231,17 @@ class UndoButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        if self.view.undo:
+            await interaction.response.defer()
+            return
         self.view.undo = True
         self.view.undo_user = interaction.user.name
         self.view.cancelled_at = interaction.message.created_at
         self.label = "Undo done"
         for item in self.view.children:
             item.disabled = True
-        await self.view.message.edit(view=self.view)
         await interaction.response.defer()
+        await self.view.message.edit(view=self.view)
         self.view.stop()
 
 
@@ -252,6 +254,9 @@ class EditButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        if self.view.edit:
+            await interaction.response.defer()
+            return
         self.view.undo = True
         self.view.edit = True
         self.view.undo_user = interaction.user.name
@@ -259,8 +264,8 @@ class EditButton(discord.ui.Button):
         self.label = "Edit triggered"
         for item in self.view.children:
             item.disabled = True
-        await self.view.message.edit(view=self.view)
         await interaction.response.defer()
+        await self.view.message.edit(view=self.view)
         self.view.stop()
 
 
