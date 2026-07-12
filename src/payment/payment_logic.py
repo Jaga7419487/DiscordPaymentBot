@@ -540,7 +540,7 @@ def build_currency_text(currency: str, exchange_rate: float) -> str:
         return ""
 
 
-def process_amount(amount: str, currency: str, service_charge: bool) -> float:
+def process_amount(amount: str, currency: str, service_charge: bool) -> Tuple[float, float]:
     """
     Convert the entered amount into unified currency.
 
