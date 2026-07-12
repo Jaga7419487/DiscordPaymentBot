@@ -22,6 +22,7 @@ from payment.payment_logic import (
     create_user,
     delete_user,
     payment_system,
+    refetch_payment_record,
     show_logs,
     show_payment_record,
 )
@@ -142,6 +143,7 @@ def start_bot():
     @command_wrapper(command_type="read")
     async def show(message: commands.Context):
         await message.channel.send(show_payment_record(message.author.id))
+        refetch_payment_record()  # refetch afterwards -> immediate response & latest data
 
     @bot.command(
         help="Show the history of command inputs", brief="Latest command inputs"

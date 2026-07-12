@@ -23,7 +23,7 @@ bookkeeping_ref = db.collection("bookkeeping")
 RecordType = Literal["expense", "income"]
 
 
-def firebase_to_dict() -> dict:
+def fetch_payment_list() -> dict:
     """
     Fetch all user balances from the Firestore users collection.
 

@@ -21,7 +21,7 @@ from constants import (
 from payment.payment_ui import InputView, UndoView, amt_parser, is_valid_amount
 from utils import B, I, channel_to_text, get_mapped_name
 
-payment_records = firebase_manager.firebase_to_dict()
+payment_records = firebase_manager.fetch_payment_list()
 user_list = list(payment_records.keys())
 firebase_queue = queue.Queue()
 
@@ -211,6 +211,13 @@ def show_payment_record(author_id=None) -> str:
     need_pay = need_pay + "\n" if need_pay else need_pay
 
     return (zero + take_money + need_pay) or "Error! No payment records found"
+
+
+def refetch_payment_record() -> str:
+    """re-fetch payment records from firebase"""
+    global payment_records, user_list
+    payment_records = firebase_manager.fetch_payment_list()
+    user_list = list(payment_records.keys())
 
 
 def show_payment_logs(message: list[str]) -> str:
