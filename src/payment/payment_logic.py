@@ -183,6 +183,10 @@ def show_payment_record(author_id=None) -> str:
     sum = 0
     mapped_name = get_mapped_name(author_id)
 
+    zero_items = []
+    take_money_items = []
+    need_pay_items = []
+
     for name, amount in payment_records.items():
         sum += amount
         record_text = ""
@@ -197,11 +201,21 @@ def show_payment_record(author_id=None) -> str:
             record_text = f"> ### {record_text.rstrip()}\n"
 
         if amount == 0:
-            zero += record_text
+            zero_items.append(record_text)
         elif amount > 0:
-            take_money += record_text
+            take_money_items.append((amount, record_text))
         else:
-            need_pay += record_text
+            need_pay_items.append((-amount, record_text))
+
+    zero = "".join(zero_items)
+    take_money = "".join(
+        record_text
+        for _, record_text in sorted(take_money_items, key=lambda item: item[0])
+    )
+    need_pay = "".join(
+        record_text
+        for _, record_text in sorted(need_pay_items, key=lambda item: item[0])
+    )
 
     if round(sum, 5) != 0:
         return "Error in records! Sum of payments is not zero"
@@ -869,7 +883,9 @@ async def handle_multi_line_payment(message, raw_lines: list[str], log_channel) 
 
     # Single UndoView for the whole batch
     undo_view = UndoView(message.author.id, False, combined_response)
-    undo_view.message = await response_msg.edit(view=undo_view, embed=undo_view.embed_text)
+    undo_view.message = await response_msg.edit(
+        view=undo_view, embed=undo_view.embed_text
+    )
     await undo_view.wait()
 
     # Bulk undo: reverse every transaction in reverse order
