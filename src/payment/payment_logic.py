@@ -540,7 +540,9 @@ def build_currency_text(currency: str, exchange_rate: float) -> str:
         return ""
 
 
-def process_amount(amount: str, currency: str, service_charge: bool) -> Tuple[float, float]:
+def process_amount(
+    amount: str, currency: str, service_charge: bool
+) -> Tuple[float, float]:
     """
     Convert the entered amount into unified currency.
 
@@ -674,6 +676,7 @@ async def payment_system(bot, message, prev_input=None) -> None:
             await message.reply(B(parsed_input))
         return
 
+    response_msg = await message.reply(B("Processing payment... Please wait."))
     msg_time = message.message.created_at.astimezone(TIMEZONE)
 
     ppl_to_pay, op_text, ppl_get_paid, amount, reason, log_content, update = (
@@ -693,7 +696,9 @@ async def payment_system(bot, message, prev_input=None) -> None:
 
     # send the UNDO view before time-consuming operations
     undo_view = UndoView(message.author.id, not cmd_input, response_content)
-    undo_view.message = await message.reply(view=undo_view, embed=undo_view.embed_text)
+    undo_view.message = await response_msg.edit(
+        content=None, view=undo_view, embed=undo_view.embed_text
+    )
 
     await log_channel.send(log_content)
     log_ref = firebase_manager.write_log(
@@ -813,9 +818,10 @@ async def handle_multi_line_payment(message, raw_lines: list[str], log_channel) 
         await message.reply(B("Some lines could not be parsed:\n" + "\n".join(errors)))
 
     # Process each parsed transaction
+    response_msg = await message.reply(B("Processing payment... Please wait."))
     msg_time = message.message.created_at.astimezone(TIMEZONE)
-    processed_txns = []  # {ppl_to_pay, ppl_get_paid, actual_amount, log_content, log_ref}
 
+    processed_txns = []  # {ppl_to_pay, ppl_get_paid, actual_amount, log_content, log_ref}
     for parsed in parsed_txns:
         ppl_to_pay, op_text, ppl_get_paid, amount, reason, log_content, update = (
             parse_payment(message, parsed, msg_time)
@@ -863,7 +869,7 @@ async def handle_multi_line_payment(message, raw_lines: list[str], log_channel) 
 
     # Single UndoView for the whole batch
     undo_view = UndoView(message.author.id, False, combined_response)
-    undo_view.message = await message.reply(view=undo_view, embed=undo_view.embed_text)
+    undo_view.message = await response_msg.edit(view=undo_view, embed=undo_view.embed_text)
     await undo_view.wait()
 
     # Bulk undo: reverse every transaction in reverse order
