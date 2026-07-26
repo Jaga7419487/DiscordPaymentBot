@@ -2,6 +2,7 @@ import discord
 
 from constants import (
     MENU_TIMEOUT,
+    ROUND_OFF_DP,
     SUPPORTED_CURRENCY,
     UNDO_TIMEOUT,
     UNIFIED_CURRENCY,
@@ -125,7 +126,9 @@ class AmountModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         try:
             if is_valid_amount(self.amount_textinput.value):
-                self.amount = str(eval(amt_parser(self.amount_textinput.value)))
+                self.amount = str(
+                    round(eval(amt_parser(self.amount_textinput.value)), ROUND_OFF_DP)
+                )
             else:
                 await interaction.response.send_message(
                     "Invalid amount!", ephemeral=True
