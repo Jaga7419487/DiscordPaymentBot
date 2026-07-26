@@ -142,14 +142,7 @@ class AmountModal(discord.ui.Modal):
                 B("What have you entered for the amount .-."), ephemeral=True
             )
 
-        if (
-            self.reason_textinput.value
-            and self.reason_textinput.value[0] in "(（"
-            and self.reason_textinput.value[-1] == "）)"
-        ):
-            self.reason = self.reason_textinput.value[1:-1]
-        else:
-            self.reason = self.reason_textinput.value
+        self.reason = self.reason_textinput.value
 
         if self.currency_textinput.value.upper() in SUPPORTED_CURRENCY.keys():
             self.currency = self.currency_textinput.value.upper()
