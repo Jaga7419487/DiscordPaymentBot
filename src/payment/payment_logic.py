@@ -75,8 +75,10 @@ def parse_payment_cmd(tokens: list[str]) -> Union[dict, str]:
 
     # operation
     operation = tokens[1].lower()
-    if operation not in ["owe", "payback"]:
+    if operation not in ["owe", "payback", "pay", "paid"]:
         return "Invalid payment operation!"
+    if operation in ("pay", "paid"):
+        operation = "payback"
     operation_owe = operation == "owe"
 
     # right user

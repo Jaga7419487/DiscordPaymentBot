@@ -297,9 +297,9 @@ BOT_DESCRIPTION = """
 - `!create <name>`: Create a new user in the payment system. Use this in the payment channel.
 - `!delete <name>`: Delete a user with no outstanding balance. Use this in the payment channel.
 - `!pm`: Open the payment UI to enter a record manually.
-- `!pm <payees> <owe|payback> <receiver> <amount> [-CUR] [sc] [reason]`: Record a payment directly.
+- `!pm <payees> <owe|payback|pay|paid> <receiver> <amount> [-CUR] [sc] [reason]`: Record a payment directly.
   - `<payees>`: One or more users separated by commas, with no spaces.
-  - `<owe|payback>`: Choose whether the listed users owe or pay back.
+  - `<owe|payback|pay|paid>`: Choose whether the listed users owe or pay back.
   - `<receiver>`: The user being repaid.
   - `<amount>`: Numeric value, up to 3 decimal places.
   - `[-CUR]`: Optional currency code such as `-HKD`, `-CNY`, or `-GBP`. Default is `HKD`.
