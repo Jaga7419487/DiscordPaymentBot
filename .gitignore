@@ -2,6 +2,9 @@ __pycache__/
 .idea/
 .vscode/
 venv/
+.venv/
+build/
+dist/
 
 .env
 

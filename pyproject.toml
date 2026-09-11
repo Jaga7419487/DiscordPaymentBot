@@ -1,0 +1,20 @@
+[project]
+name = "discordpaymentbot"
+version = "0.1.0"
+requires-python = ">=3.11.11"
+dependencies = [
+    "cryptography==44.0.2",
+    "discord~=2.3.2",
+    "fastapi~=0.115.12",
+    "firebase-admin==6.8.0",
+    "google-cloud-firestore==2.20.2",
+    "httpx~=0.24.1",
+    "numpy==1.26.4",
+    "pandas==2.0.3",
+    "pygsheets~=2.0.5",
+    "python-dotenv~=1.0.1",
+    "pytz~=2023.3",
+    "requests~=2.32.3",
+    "selenium~=4.11.2",
+    "uvicorn~=0.34.3",
+]
