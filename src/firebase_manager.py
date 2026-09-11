@@ -34,9 +34,7 @@ def fetch_payment_list() -> dict:
     return {user.id: user.to_dict().get("balance", 0) for user in users}
 
 
-def update_user_balance(
-    name: str, amount: float, timestamp=datetime.now(TIMEZONE)
-) -> None:
+def update_user_balance(name: str, amount: float, timestamp=datetime) -> None:
     """
     Update a user's balance in Firestore.
 
@@ -111,7 +109,7 @@ def write_log(
     channel: str,
     entered_by: str,
     cmd: str,
-    timestamp=datetime.now(TIMEZONE),
+    timestamp: datetime,
     **kwargs,
 ) -> firestore.DocumentReference:
     """
@@ -153,7 +151,7 @@ def update_log(doc_ref: firestore.DocumentReference, **kwargs) -> None:
     doc_ref.update(kwargs)
 
 
-def create_user(name: str, timestamp=datetime.now(TIMEZONE)) -> None:
+def create_user(name: str, timestamp: datetime) -> None:
     """
     Create a new user document in Firestore.
 
@@ -195,7 +193,7 @@ def add_bookkeeping_record(
     category: str,
     name: str,
     amount: float,
-    timestamp=datetime.now(TIMEZONE),
+    timestamp: datetime,
 ) -> firestore.DocumentReference:
     """
     Add a bookkeeping record to Firestore.

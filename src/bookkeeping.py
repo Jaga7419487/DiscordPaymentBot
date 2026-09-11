@@ -1,5 +1,7 @@
+from datetime import datetime
+
 import firebase_manager
-from constants import ROUND_OFF_DP
+from constants import ROUND_OFF_DP, TIMEZONE
 from utils import B, amt_parser, is_valid_amount
 
 
@@ -30,7 +32,7 @@ def add_bookkeeping_record(message) -> str:
         return B("Amount must be greater than 0")
 
     firebase_manager.add_bookkeeping_record(
-        username, record_type, category, name, amount
+        username, record_type, category, name, amount, datetime.now(TIMEZONE)
     )
     return B("Bookkeeping record added successfully")
 
