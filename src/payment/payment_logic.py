@@ -1,6 +1,6 @@
-from datetime import datetime
 import queue
 import threading
+from datetime import datetime
 from typing import List, Tuple, Union
 
 import discord
