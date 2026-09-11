@@ -1,4 +1,3 @@
-import logging
 from functools import wraps
 
 import discord
@@ -6,6 +5,7 @@ from discord.ext import commands
 
 from backend import start_fastapi
 from bookkeeping import add_bookkeeping_record
+from config_logger import get_logger
 from constants import (
     BOT_DESCRIPTION,
     BOT_KEY,
@@ -29,11 +29,7 @@ from payment.payment_logic import (
 from ping_worker import ping_bot
 from utils import B, channel_to_text, get_emoji
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] [%(levelname)s] %(filename)s:%(lineno)d - %(funcName)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logger = get_logger(__name__)
 
 
 class BotState:
@@ -66,7 +62,7 @@ def start_bot():
 
     def command_wrapper(bot_active=True, in_payment_channel=False, command_type=None):
         """
-        Wrap commands with common checks and logging.
+        Wrap commands with common checks and logger.
 
         Args:
             bot_active: Whether the bot must be active.
@@ -92,7 +88,7 @@ def start_bot():
                     channel_name = getattr(
                         ctx.channel, "name", None
                     ) or channel_to_text(ctx.channel)
-                    logging.info(
+                    logger.info(
                         f"Command executed: {ctx.message.content} by {ctx.author.name} in {channel_name}"
                     )
                     if command_type:
@@ -104,8 +100,8 @@ def start_bot():
                             ctx.message.created_at.astimezone(TIMEZONE),
                         )
                 except Exception as e:
+                    logger.exception(f"Error in command {ctx.command}")
                     await notify_error(ctx, e)
-                    logging.error(f"Error in command {ctx.command}: {e}")
 
             return wrapper
 
@@ -113,7 +109,7 @@ def start_bot():
 
     @bot.event
     async def on_ready():
-        logging.info(f"Bot started as {bot.user} (Call !switch to start/stop)")
+        logger.info(f"Bot started as {bot.user} (Call !switch to start/stop)")
         await bot.change_presence(activity=discord.Game(name=BOT_STATUS))
         write_bot_log()
         await start_background_tasks(bot)

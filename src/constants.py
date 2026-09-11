@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# config
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
 # bot
 INIT_STATE = os.getenv("INIT_STATE", "false").lower() == "true"
 BOT_KEY = os.getenv("BOT_KEY")

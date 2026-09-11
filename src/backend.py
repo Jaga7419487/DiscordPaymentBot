@@ -1,10 +1,12 @@
-import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
 
+from config_logger import get_logger
 from payment.payment_logic import terminate_worker
+
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -14,7 +16,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown code here
-    logging.info("FastAPI is shutting down!")
+    logger.info("FastAPI is shutting down!")
     terminate_worker()
 
 
