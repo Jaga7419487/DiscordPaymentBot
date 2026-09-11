@@ -206,6 +206,31 @@ def start_bot():
     async def log(message: commands.Context):
         await message.send(add_bookkeeping_record(message))
 
+    @bot.command(hidden=True)
+    @command_wrapper(command_type="others")
+    async def image(ctx: commands.Context):
+        # POC for image reasons - to be implemented after refactoring payment module
+        channel = await bot.fetch_channel(878318098896281650)
+        msg = await channel.fetch_message(1455212140129685574)
+
+        logger.debug(f"Message attachments: {msg.attachments}")
+
+        if msg_attachments := next(iter(msg.attachments), None):
+            shared_url = "https://picsum.photos/500"  # share url for all embeds -> parallel images shown in a single embed
+            
+            main_embed = discord.Embed(
+                title="Payment record successfully updated!",
+                description="`ppl1: ppl1 owe ppl2 $741 (POC)`\n-# Updated records:\n-# ppl1 needs to pay...",
+                url=shared_url
+            )
+            main_embed.set_image(url=msg_attachments.url)
+            
+            # mimic sending more attachments
+            image_embed = discord.Embed(url=shared_url)
+            image_embed.set_image(url=msg_attachments.url)
+            
+            await ctx.send(embeds=[main_embed, image_embed])
+
     bot.run(BOT_KEY)
 
 
